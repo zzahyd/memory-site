@@ -1,0 +1,7 @@
+# 腾讯云开发(TCB)云函数 - 后端代码，纯静态托管(GitHub Pages)不需要
+cloudfunctions/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>访问记忆 · 3D 高斯泼溅</title>
+<link rel="preload" href="./music/music1.m4a" as="audio" type="audio/mp4" />
+<link rel="preload" href="./music/music2.m4a" as="audio" type="audio/mp4" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+      "Microsoft YaHei", "Segoe UI", sans-serif;
+    overflow-x: hidden;
+    background: #f6f8ff;
+    color: #3a3a4a;
+  }
+
+  /* ===== 与起始页一致的浅色流动背景 ===== */
+  .bg { position: fixed; inset: 0; overflow: hidden; z-index: 0; filter: blur(100px) saturate(145%); }
+  .blob { position: absolute; border-radius: 50%; opacity: 0.62; will-change: transform, filter; }
+  .blob.b1 { width: 135vmax; height: 135vmax; left: -35vmax; top: -35vmax; background: radial-gradient(circle at 40% 40%, #ffb0d0, transparent 67%); animation: float1 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b2 { width: 128vmax; height: 128vmax; right: -38vmax; top: -30vmax; background: radial-gradient(circle at 60% 40%, #aecbff, transparent 67%); animation: float2 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b3 { width: 130vmax; height: 130vmax; left: -25vmax; bottom: -40vmax; background: radial-gradient(circle at 40% 60%, #d4bcff, transparent 67%); animation: float3 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b4 { width: 122vmax; height: 122vmax; right: -30vmax; bottom: -35vmax; background: radial-gradient(circle at 50% 50%, #a6ecdd, transparent 67%); animation: float4 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b5 { width: 120vmax; height: 120vmax; left: 18vmax; top: 8vmax; background: radial-gradient(circle at 50% 50%, #ffd79a, transparent 67%); animation: float5 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b6 { width: 118vmax; height: 118vmax; left: 30vmax; bottom: 6vmax; background: radial-gradient(circle at 50% 50%, #ffb6b6, transparent 67%); animation: float6 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b7 { width: 115vmax; height: 115vmax; right: 12vmax; top: 22vmax; background: radial-gradient(circle at 50% 50%, #b3ecff, transparent 67%); animation: float7 20s ease-in-out infinite, hue 20s linear infinite; }
+  @keyframes hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+  @keyframes float1 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(12vmax,8vmax) scale(1.12)} 50%{transform:translate(5vmax,16vmax) scale(1.04)} 75%{transform:translate(-7vmax,9vmax) scale(1.14)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float2 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(-11vmax,10vmax) scale(1.1)} 50%{transform:translate(-5vmax,4vmax) scale(1.16)} 75%{transform:translate(-13vmax,-6vmax) scale(1.06)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float3 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(10vmax,-8vmax) scale(1.14)} 50%{transform:translate(16vmax,-3vmax) scale(1.05)} 75%{transform:translate(6vmax,-12vmax) scale(1.12)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float4 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(-9vmax,-9vmax) scale(1.1)} 50%{transform:translate(-14vmax,-2vmax) scale(1.15)} 75%{transform:translate(-6vmax,11vmax) scale(1.07)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float5 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(8vmax,12vmax) scale(1.13)} 50%{transform:translate(-6vmax,10vmax) scale(1.05)} 75%{transform:translate(10vmax,-8vmax) scale(1.11)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float6 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(-10vmax,7vmax) scale(1.12)} 50%{transform:translate(7vmax,13vmax) scale(1.06)} 75%{transform:translate(12vmax,-6vmax) scale(1.13)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float7 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(9vmax,-10vmax) scale(1.11)} 50%{transform:translate(-8vmax,-12vmax) scale(1.14)} 75%{transform:translate(-11vmax,6vmax) scale(1.05)} 100%{transform:translate(0,0) scale(1)} }
+  .veil { position: fixed; inset: 0; z-index: 1; background: radial-gradient(ellipse at center, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 55%); pointer-events: none; }
+
+  /* ===== 顶栏 ===== */
+  .topbar { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px; }
+  .topbar .title { font-size: 18px; letter-spacing: 0.12em; color: #3a3a4a; }
+  .back { text-decoration: none; color: #3a3a4a; padding: 9px 18px; border-radius: 999px;
+    border: 1px solid rgba(58,58,74,0.12); background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: 13px; letter-spacing: 0.08em;
+    transition: transform .3s, background .3s; }
+  .back:hover { transform: translateY(-2px); background: rgba(255,255,255,0.85); }
+
+  /* ===== 放射状星座布局 ===== */
+  .stage2 { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; min-height: calc(100vh - 120px); padding: 8px 12px 28px;
+    transition: transform .55s cubic-bezier(.2,.7,.2,1), filter .55s ease, opacity .55s ease; }
+  /* 打开查看器时，星座背景向后“退去”，营造景深 */
+  body.overlay-open .stage2 { transform: scale(0.95); filter: blur(2px); opacity: .55; }
+  .constellation { position: relative; width: var(--cw, min(94vw, 66vh, 520px)); aspect-ratio: 1 / 1;
+    margin: 0 auto; }
+  .lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  .lines line { stroke: rgba(120,110,170,0.30); stroke-width: 0.45; stroke-linecap: round;
+    stroke-dasharray: 2 2.4; animation: flow 6s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -44; } }
+
+  .center-node, .node { position: absolute; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; cursor: pointer; user-select: none; }
+
+  .center-node { left: 50%; top: 50%; width: clamp(74px, 20vw, 110px); height: clamp(74px, 20vw, 110px);
+    border-radius: 50%; color: #4a3a6a; font-weight: 700; letter-spacing: 0.1em;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.95), rgba(214,224,255,0.85));
+    border: 1.5px solid rgba(255,255,255,0.9);
+    box-shadow: 0 8px 30px rgba(150,130,220,0.30), inset 0 0 18px rgba(255,255,255,0.6);
+    font-size: clamp(18px, 5vw, 26px); animation: pulse 3.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{ transform: translate(-50%,-50%) scale(1); } 50%{ transform: translate(-50%,-50%) scale(1.06); } }
+
+  .node { width: auto; min-width: clamp(72px, 22vw, 116px); padding: 11px 16px; border-radius: 999px;
+    background: rgba(255,255,255,0.62); border: 1px solid rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 26px rgba(58,58,74,0.12), inset 0 0 14px rgba(255,255,255,0.5);
+    color: #3a3a4a; font-size: clamp(14px, 4.2vw, 18px); letter-spacing: 0.06em; white-space: nowrap;
+    transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, background .3s; }
+  .node .dot { width: 9px; height: 9px; border-radius: 50%; margin: 0 auto 6px;
+    background: radial-gradient(circle at 35% 30%, #ff9ad2, #9ec1ff); box-shadow: 0 0 10px rgba(255,150,210,0.7); }
+  .node:hover, .node:active { transform: translate(-50%, -50%) scale(1.07);
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 14px 38px rgba(255,150,200,0.28), 0 10px 34px rgba(140,170,255,0.24); }
+
+  /* ===== 查看器浮层（圆形“时空漩涡”揭示过渡）===== */
+  .overlay { position: fixed; inset: 0; z-index: 10; background: rgba(20,18,30,0.92);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; visibility: hidden;
+    clip-path: circle(0% at var(--ox, 50%) var(--oy, 50%));
+    -webkit-clip-path: circle(0% at var(--ox, 50%) var(--oy, 50%));
+    transition: clip-path .62s cubic-bezier(.66,0,.2,1), -webkit-clip-path .62s cubic-bezier(.66,0,.2,1),
+                opacity .42s ease, visibility .62s; }
+  .overlay.show { opacity: 1; visibility: visible;
+    clip-path: circle(230% at var(--ox, 50%) var(--oy, 50%));
+    -webkit-clip-path: circle(230% at var(--ox, 50%) var(--oy, 50%)); }
+  .overlay.hidden { display: none; }
+
+  /* 点击行星时从星点炸开的“冲击波”光环 */
+  .warp { position: fixed; z-index: 9; left: var(--wx, 50%); top: var(--wy, 50%);
+    width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+    border: 2px solid rgba(255,200,230,0.9); box-shadow: 0 0 24px rgba(255,170,210,0.7);
+    pointer-events: none; transform: translate(-50%,-50%) scale(0); opacity: .9;
+    animation: warp .62s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes warp { to { transform: translate(-50%,-50%) scale(34); opacity: 0; } }
+  .viewer-host { position: absolute; inset: 0; }
+  /* 顶栏工具：关闭按钮左侧放“旋转轴”按钮 */
+  .top-tools { position: absolute; top: 18px; right: 18px; z-index: 12;
+    display: flex; gap: 10px; align-items: center; }
+  .axis-btn { cursor: pointer; padding: 11px 16px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12);
+    color: #fff; font-size: 15px; letter-spacing: 0.06em; white-space: nowrap;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    transition: background .3s, color .3s, box-shadow .3s, transform .2s; }
+  .axis-btn:hover { background: rgba(255,255,255,0.22); }
+  .axis-btn.active { background: linear-gradient(90deg, rgba(255,154,210,0.95), rgba(158,193,255,0.95));
+    border-color: rgba(255,255,255,0.7); color: #2a2440; font-weight: 700;
+    box-shadow: 0 6px 22px rgba(255,150,210,0.35); }
+  .close-btn { position: static; cursor: pointer; padding: 11px 20px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12);
+    color: #fff; font-size: 15px; letter-spacing: 0.08em;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .close-btn:hover { background: rgba(255,255,255,0.22); }
+
+  /* 旋转轴面板 */
+  .axis-panel { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%);
+    z-index: 12; display: flex; flex-direction: column; gap: 10px; align-items: center;
+    padding: 14px 18px; border-radius: 18px; max-width: 92vw;
+    background: rgba(28,26,40,0.72); border: 1px solid rgba(255,255,255,0.18);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); color: #fff;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35); }
+  .axis-panel.hidden { display: none; }
+  .ap-title { font-size: 13px; letter-spacing: 0.12em; color: #d9dcff; }
+  .ap-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .chip { cursor: pointer; padding: 7px 14px; border-radius: 999px; font-size: 13px;
+    letter-spacing: 0.04em; border: 1px solid rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08); color: #cfd2ee; transition: all .2s; }
+  .chip:hover { background: rgba(255,255,255,0.16); }
+  .chip.x.on { background: rgba(255,90,90,0.9); border-color: rgba(255,150,150,0.95); color: #fff; }
+  .chip.y.on { background: rgba(90,220,120,0.9); border-color: rgba(150,240,170,0.95); color: #0a2a12; }
+  .chip.z.on { background: rgba(90,150,255,0.92); border-color: rgba(160,195,255,0.95); color: #fff; }
+  .chip.all, .chip.reset { background: rgba(255,255,255,0.10); }
+  .ap-sliders { display: flex; flex-direction: column; gap: 6px; width: 250px; max-width: 80vw; }
+  .ap-sliders label { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #cfd2ee; }
+  .ap-sliders label span { width: 16px; text-align: center; font-weight: 700; }
+  .ap-sliders input[type=range] { flex: 1; accent-color: #9ec1ff; }
+  .ap-hint { font-size: 11px; color: #9aa0c8; text-align: center; line-height: 1.5; }
+  .loading { position: absolute; z-index: 11; color: #fff; font-size: 15px; letter-spacing: 0.1em;
+    display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 20px; text-align: center; }
+  .loading .spin { width: 34px; height: 34px; border: 3px solid rgba(255,255,255,0.25);
+    border-top-color: #fff; border-radius: 50%; animation: spin 0.9s linear infinite; }
+  .barwrap { width: min(70vw, 320px); height: 9px; border-radius: 999px;
+    background: rgba(255,255,255,0.18); overflow: hidden; margin-top: 4px; }
+  .bar { height: 100%; width: 0%; border-radius: 999px;
+    background: linear-gradient(90deg, #ff9ad2, #9ec1ff); transition: width .15s ease; }
+  .pct { font-size: 13px; letter-spacing: 0.08em; color: #e9ecff; }
+  .phase { font-size: 12px; letter-spacing: 0.06em; color: #b9bee0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .err { position: absolute; z-index: 11; color: #ffd0d0; max-width: 82%; text-align: center;
+    line-height: 1.7; font-size: 14px; }
+  .hidden { display: none !important; }
+
+  /* ===== 留言板 ===== */
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .msg-btn { cursor: pointer; padding: 9px 16px; border-radius: 999px; font-size: 13px; letter-spacing: 0.08em;
+    border: 1px solid rgba(58,58,74,0.12); background: rgba(255,255,255,0.55); color: #3a3a4a;
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    transition: transform .3s, background .3s; white-space: nowrap; }
+  .msg-btn:hover { transform: translateY(-2px); background: rgba(255,255,255,0.85); }
+
+  .msg-modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
+    background: rgba(30,26,46,0.55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); padding: 16px; }
+  .msg-modal.hidden { display: none; }
+  .msg-card { width: min(440px, 94vw); max-height: 84vh; display: flex; flex-direction: column;
+    background: rgba(255,255,255,0.96); border-radius: 22px; overflow: hidden;
+    box-shadow: 0 24px 70px rgba(80,60,140,0.32); }
+  .msg-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px;
+    border-bottom: 1px solid rgba(58,58,74,0.08); }
+  .msg-head h3 { font-size: 17px; letter-spacing: 0.08em; color: #3a3a4a; font-weight: 700; }
+  .msg-close { cursor: pointer; width: 30px; height: 30px; border-radius: 50%; border: none; background: rgba(58,58,74,0.08);
+    color: #3a3a4a; font-size: 18px; line-height: 1; transition: background .2s; }
+  .msg-close:hover { background: rgba(58,58,74,0.16); }
+  .msg-list { flex: 1; overflow-y: auto; padding: 14px 20px; display: flex; flex-direction: column; gap: 12px;
+    background: rgba(246,248,255,0.6); min-height: 120px; }
+  .msg-empty { margin: auto; color: #9a9ab0; font-size: 14px; text-align: center; line-height: 1.8; }
+  .msg-item { background: #fff; border: 1px solid rgba(58,58,74,0.07); border-radius: 14px; padding: 11px 14px;
+    box-shadow: 0 4px 14px rgba(58,58,74,0.06); }
+  .msg-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 5px; }
+  .msg-name { font-size: 13.5px; font-weight: 700; color: #5a4a8a; }
+  .msg-time { font-size: 11px; color: #a0a0b8; white-space: nowrap; }
+  .msg-text { font-size: 14px; color: #3a3a4a; line-height: 1.65; white-space: pre-wrap; word-break: break-word; }
+  .msg-form { padding: 12px 16px 16px; border-top: 1px solid rgba(58,58,74,0.08); background: #fff;
+    display: flex; flex-direction: column; gap: 8px; }
+  .msg-form .row { display: flex; gap: 8px; }
+  .msg-form input, .msg-form textarea { font-family: inherit; font-size: 14px; color: #3a3a4a;
+    border: 1px solid rgba(58,58,74,0.16); border-radius: 12px; padding: 10px 12px; background: #fbfbff;
+    outline: none; transition: border-color .2s, box-shadow .2s; }
+  .msg-form input { flex: 0 0 38%; min-width: 0; }
+  .msg-form input:focus, .msg-form textarea:focus { border-color: rgba(158,193,255,0.9);
+    box-shadow: 0 0 0 3px rgba(158,193,255,0.18); }
+  .msg-form textarea { resize: vertical; min-height: 60px; }
+  .msg-send { align-self: flex-end; cursor: pointer; padding: 9px 22px; border: none; border-radius: 999px;
+    background: linear-gradient(90deg, #ff9ad2, #9ec1ff); color: #2a2440; font-weight: 700; font-size: 14px;
+    letter-spacing: 0.06em; transition: transform .2s, box-shadow .2s; }
+  .msg-send:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(255,150,210,0.32); }
+  .msg-note { font-size: 11px; color: #a0a0b8; text-align: center; padding: 0 4px; line-height: 1.5; }
+  .msg-status { font-size: 11px; color: #8a8aa8; text-align: center; padding: 4px 4px 0; letter-spacing: 0.04em; }
+
+  /* ===== 手机端适配 ===== */
+  @media (max-width: 560px) {
+    .topbar { padding: 14px 16px; }
+    .topbar .title { font-size: 16px; }
+    .back { padding: 8px 14px; font-size: 12px; }
+    .hint { font-size: 11.5px; padding: 2px 16px 4px; }
+    .stage2 { min-height: calc(100vh - 104px); padding: 4px 8px 20px; }
+    .node { padding: 9px 13px; }
+    .top-tools { top: 14px; right: 14px; gap: 8px; }
+    .axis-btn { padding: 12px 13px; font-size: 14px; }
+    .close-btn { padding: 12px 16px; font-size: 16px; }
+    .axis-panel { bottom: 14px; padding: 12px 14px; gap: 8px; }
+    .ap-sliders { width: 220px; }
+    .loading { font-size: 14px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .blob, .lines line, .center-node { animation: none !important; }
+  }
+
+  /* ===== 背景音乐开关 ===== */
+  .music-toggle {
+    position: fixed; right: 16px; bottom: 16px; z-index: 40;
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 1px solid rgba(58,58,74,0.14);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 26px rgba(58,58,74,0.12);
+    font-size: 20px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .3s, background .3s;
+  }
+  .music-toggle:hover { transform: translateY(-2px) scale(1.05); background: rgba(255,255,255,0.85); }
+  html.embedded .music-toggle { display: none; }
+</style>
+</head>
+<body>
+  <script>var EMBEDDED = (window.self !== window.top); if (EMBEDDED) document.documentElement.classList.add('embedded');</script>
+  <div class="bg" aria-hidden="true">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+    <div class="blob b4"></div><div class="blob b5"></div><div class="blob b6"></div><div class="blob b7"></div>
+  </div>
+  <div class="veil" aria-hidden="true"></div>
+
+  <div class="topbar">
+    <div class="title">访问记忆</div>
+    <div class="topbar-right">
+      <button class="msg-btn" id="msgBtn">💬 留言<span id="msgCount"></span></button>
+      <a class="back" id="backLink" href="index.html">← 返回</a>
+    </div>
+  </div>
+
+  <button id="music-toggle" class="music-toggle" title="背景音乐开关" aria-label="背景音乐开关">🔊</button>
+  <script>
+    if (typeof EMBEDDED !== 'undefined' && EMBEDDED) {
+      var back = document.getElementById('backLink');
+      if (back) back.addEventListener('click', function (e) {
+        e.preventDefault();
+        if (window.parent && window.parent.closeMemory) window.parent.closeMemory();
+      });
+    }
+  </script>
+
+  <main class="stage2">
+    <div class="constellation" id="constellation">
+      <svg class="lines" id="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="center-node" id="centerNode">记忆</div>
+      <!-- 组节点由 JS 生成 -->
+    </div>
+  </main>
+
+  <div class="overlay hidden" id="overlay">
+    <div class="viewer-host" id="viewerHost"></div>
+    <div class="loading" id="loading">
+      <div class="spin"></div>
+      <span id="phase">模型加载中…</span>
+      <div class="barwrap"><div class="bar" id="bar"></div></div>
+      <span class="pct" id="pct">0%</span>
+    </div>
+    <div class="err hidden" id="err"></div>
+    <div class="top-tools">
+      <button class="axis-btn" id="axisBtn">🧭 旋转轴</button>
+      <button class="close-btn" id="closeBtn">× 关闭</button>
+    </div>
+    <div class="axis-panel hidden" id="axisPanel">
+      <div class="ap-title">旋转轴模式</div>
+      <div class="ap-chips">
+        <button class="chip x on" data-axis="x"><span>X</span> 轴</button>
+        <button class="chip y on" data-axis="y"><span>Y</span> 轴</button>
+        <button class="chip z on" data-axis="z"><span>Z</span> 轴</button>
+        <button class="chip all" id="axisAll">全部</button>
+        <button class="chip reset" id="axisReset">重置</button>
+      </div>
+      <div class="ap-sliders">
+        <label><span style="color:#ff6b6b">X</span><input type="range" id="slX" min="-180" max="180" value="0"></label>
+        <label><span style="color:#5cdc78">Y</span><input type="range" id="slY" min="-180" max="180" value="0"></label>
+        <label><span style="color:#5a96ff">Z</span><input type="range" id="slZ" min="-180" max="180" value="0"></label>
+      </div>
+      <div class="ap-hint">拖动画面：左右→转 Y 轴 · 上下→转 X 轴 · Shift+拖拽→转 Z 轴<br>只旋转已点亮的轴；也可直接拖滑块精调</div>
+    </div>
+  </div>
+
+  <!-- 留言板（轻量、纯前端；数据存于浏览器本地，便于即时可用） -->
+  <div class="msg-modal hidden" id="msgModal">
+    <div class="msg-card">
+      <div class="msg-head">
+        <h3>留言墙</h3>
+        <button class="msg-close" id="msgClose" aria-label="关闭">×</button>
+      </div>
+      <div class="msg-status" id="msgStatus"></div>
+      <div class="msg-list" id="msgList"></div>
+      <div class="msg-form">
+        <div class="row">
+          <input type="text" id="msgName" maxlength="20" placeholder="昵称（可不填）" />
+          <button class="msg-send" id="msgSend">写下留言</button>
+        </div>
+        <textarea id="msgText" maxlength="500" placeholder="写下你想对这段记忆说的话…"></textarea>
+        <div class="msg-note">共享留言墙：所有人可见、可写。留言存于云端，换设备/换人都看得到。</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3D 高斯泼溅查看器（基于 Three.js，按 importmap 加载） -->
+  <!-- 库已本地化（lib/ 目录），不再依赖 jsdelivr CDN，避免中国大陆访问失败 -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./lib/three.module.js",
+      "@mkkellogg/gaussian-splats-3d": "./lib/gaussian-splats-3d.module.js"
+    }
+  }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    // ====== 在这里维护你的模型清单（改这里即可，不用动其他代码）======
+    // file 相对路径指向 memory-site/ 下的文件；压缩格式 .ksplat（由 .ply 转换而来）。
+    // size 为文件字节数，用于显示真实百分比进度条（网关不返回 Content-Length 时用它兜底）。
+    // r 为该节点距中心的相对半径（0~1，值越大离中心越远 -> 实现"不等距分散"），可逐模型调整。
+    // cameraPos / cameraLookAt / cameraUp 可每个模型单独微调取景（不知道就先留空用默认）。
+    const MODELS = [
+      { name: "吴梓铭组", file: "models/wuziming.ksplat",   size: 62306972, r: 0.58 },
+      { name: "大小姐组", file: "models/daxiaojie.ksplat",  size: 44931816, r: 0.82 },
+      { name: "李子蓁组", file: "models/lizizhen.ksplat",   size: 73919428, r: 0.46 },
+      { name: "邢菡初组", file: "models/xinghanchu.ksplat", size: 64055628, r: 0.74 },
+      { name: "常恩杰组", file: "models/changenjie.ksplat",  size: 16825668, r: 0.54 },
+      { name: "刘星宇组", file: "models/liuxingyu.ksplat",   size: 22655408, r: 0.82 },
+      { name: "张唐组",   file: "models/zhangtang.ksplat",   size: 23255904, r: 0.66 },
+      { name: "班级",     file: "models/banji.ksplat",       size: 55729068, r: 0.85 },
+    ];
+    // ================================================================
+
+    /* ===== 设备检测：电脑(可悬停+精确指针) vs 手机；电脑端布局更稀疏 ===== */
+    const IS_DESKTOP = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    // 通过 CSS 变量统一控制星座容器尺寸，避免媒体查询与 JS 判断冲突
+    document.documentElement.style.setProperty(
+      '--cw', IS_DESKTOP ? 'min(97vw, 95vh, 1200px)' : 'min(94vw, 66vh, 520px)'
+    );
+
+    const constellation = document.getElementById("constellation");
+    const linesSvg = document.getElementById("lines");
+    const overlay = document.getElementById("overlay");
+    const viewerHost = document.getElementById("viewerHost");
+    const loading = document.getElementById("loading");
+    const errBox = document.getElementById("err");
+    const closeBtn = document.getElementById("closeBtn");
+    const axisBtn = document.getElementById("axisBtn");
+    const axisPanel = document.getElementById("axisPanel");
+    const axisAll = document.getElementById("axisAll");
+    const axisReset = document.getElementById("axisReset");
+    const slX = document.getElementById("slX");
+    const slY = document.getElementById("slY");
+    const slZ = document.getElementById("slZ");
+    const bar = document.getElementById("bar");
+    const pct = document.getElementById("pct");
+    const phase = document.getElementById("phase");
+    let currentUrl = null;
+    let viewer = null;
+    let closeTimer = null;
+    let openSerial = 0;   // 每次打开自增；关闭后旧流程会据此中止，避免“关闭中又被重新打开”
+
+    /* ===== 三位旋转轴：X/Y/Z 轴向独立旋转 ===== */
+    let axisMode = false;
+    let axesHelper = null;
+    const axisActive = { x: true, y: true, z: true };
+    const axisAngle = { x: 0, y: 0, z: 0 };
+    const DEG = Math.PI / 180;
+
+    // 兼容 Viewer / DropInViewer 两种结构，稳妥取到真正的 splatMesh
+    function getSplatMesh() {
+      if (!viewer) return null;
+      if (viewer.splatMesh) return viewer.splatMesh;
+      if (viewer.viewer && viewer.viewer.splatMesh) return viewer.viewer.splatMesh;
+      return null;
+    }
+
+    // 由 X/Y/Z 三个角度合成姿态（绕模型自身轴向旋转），并同步滑块显示
+    function applyRotation() {
+      const m = getSplatMesh();
+      if (!m) return;
+      m.quaternion.setFromEuler(new THREE.Euler(axisAngle.x * DEG, axisAngle.y * DEG, axisAngle.z * DEG, 'XYZ'));
+      slX.value = Math.round(axisAngle.x);
+      slY.value = Math.round(axisAngle.y);
+      slZ.value = Math.round(axisAngle.z);
+    }
+
+    // 开启/关闭旋转轴模式：显示 X/Y/Z 坐标轴，并接管鼠标旋转（关闭默认 orbit 旋转，保留缩放）
+    function setAxisMode(on) {
+      axisMode = on;
+      axisBtn.classList.toggle('active', on);
+      axisPanel.classList.toggle('hidden', !on);
+      const m = getSplatMesh();
+      if (on) {
+        if (m && !axesHelper) {
+          axesHelper = new THREE.AxesHelper(2.5); // 红=X 绿=Y 蓝=Z，作为模型子对象随其旋转
+          m.add(axesHelper);
+        }
+        if (viewer && viewer.controls) {
+          ['perspectiveControls', 'orthographicControls'].forEach((k) => {
+            const c = viewer[k]; if (c) c.enableRotate = false;
+          });
+        }
+      } else {
+        if (m && axesHelper) { m.remove(axesHelper); axesHelper = null; }
+        if (viewer && viewer.controls) {
+          ['perspectiveControls', 'orthographicControls'].forEach((k) => {
+            const c = viewer[k]; if (c) c.enableRotate = true;
+          });
+        }
+      }
+    }
+
+    // 鼠标拖拽接管：按所选轴向旋转模型（X 上下、Y 左右、Shift+Z 左右）
+    let dragging = false, lastX = 0, lastY = 0;
+    viewerHost.addEventListener('pointerdown', (e) => {
+      if (!axisMode) return;
+      dragging = true; lastX = e.clientX; lastY = e.clientY;
+      e.preventDefault();
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (!axisMode || !dragging) return;
+      const dx = e.clientX - lastX, dy = e.clientY - lastY;
+      lastX = e.clientX; lastY = e.clientY;
+      const SENS = 0.4; // 度/像素
+      if (axisActive.y) axisAngle.y += dx * SENS;
+      if (axisActive.x) axisAngle.x += dy * SENS;
+      if (e.shiftKey && axisActive.z) axisAngle.z += dx * SENS;
+      // 归一化到 [-180,180]：360° 等价于原姿态，视觉无跳变，滑块更直观
+      ['x', 'y', 'z'].forEach((a) => {
+        while (axisAngle[a] > 180) axisAngle[a] -= 360;
+        while (axisAngle[a] < -180) axisAngle[a] += 360;
+      });
+      applyRotation();
+    });
+    window.addEventListener('pointerup', () => { dragging = false; });
+
+    // 轴向开关 / 全部 / 重置 / 滑块 交互
+    document.querySelectorAll('.chip[data-axis]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const a = chip.dataset.axis;
+        axisActive[a] = !axisActive[a];
+        chip.classList.toggle('on', axisActive[a]);
+      });
+    });
+    axisAll.addEventListener('click', () => {
+      ['x', 'y', 'z'].forEach((a) => (axisActive[a] = true));
+      document.querySelectorAll('.chip[data-axis]').forEach((c) => c.classList.add('on'));
+    });
+    axisReset.addEventListener('click', () => {
+      axisAngle.x = axisAngle.y = axisAngle.z = 0;
+      applyRotation();
+    });
+    [['x', slX], ['y', slY], ['z', slZ]].forEach(([a, el]) => {
+      el.addEventListener('input', () => { axisAngle[a] = +el.value; applyRotation(); });
+    });
+
+    axisBtn.addEventListener('click', () => {
+      if (!getSplatMesh()) return;
+      setAxisMode(!axisMode);
+    });
+
+    /* ===== 生成放射状星座：中心(恒星) + 放射线 + 绕星公转的组节点(行星) ===== */
+    // 每个组节点像行星一样，以恒定线速度沿“倾斜椭圆轨道”绕中心恒星公转。
+    // 恒定线速度 => 运动方向始终连续、无往返停驻，从根本上消除 Lissajous 抖动感。
+    const ORBIT_LINEAR = 1.0;       // 速度基准（viewBox 单位/秒）
+    const GOLDEN = 2.39996323;      // 黄金角，使起始相位自然错开
+    // 开场“逐渐减速”包络：线速度从 SPEED_PEAK 倍平滑衰减，约 4s 内收敛到极慢的 SPEED_FLOOR 倍后保持巡航
+    const SPEED_PEAK = 1.8;         // 开场初始倍率（约为最终速度的 18 倍）
+    const SPEED_FLOOR = 0.1;        // 减速下限倍率（最终线速度 = ORBIT_LINEAR·SPEED_FLOOR = 0.1，极慢）
+    const EASE_TAU = 1.3;           // 减速时间常数（秒）：TAU≈1.3 时约 4s 内收敛 ~95%
+    const constellationNodes = [];
+
+    // 相位积分：对“随时间衰减的速度包络”积分，得到平滑的累计转角。
+    // 返回 orbitPhase(t) = FLOOR·t + (PEAK-FLOOR)·TAU·(1 - e^(-t/TAU))
+    // —— 开场角度推进快（peak），约 4s 内平滑减速并收敛到极慢匀速巡航（floor=0.1）。
+    function orbitPhase(t) {
+      return SPEED_FLOOR * t + (SPEED_PEAK - SPEED_FLOOR) * EASE_TAU * (1 - Math.exp(-t / EASE_TAU));
+    }
+
+    // 计算 t 时刻某行星在 viewBox(0~100) 中的坐标：倾斜椭圆轨道 + 极轻呼吸
+    function orbitPos(r, omega, phase, tilt, ryF, wobPh, ph) {
+      const a = phase + omega * ph;             // ph 为已积分的累计相位（含减速包络）
+      const ex = Math.cos(a) * r;
+      const ey = Math.sin(a) * r * ryF;        // 压扁 -> 倾斜椭圆感
+      const ct = Math.cos(tilt), st = Math.sin(tilt);
+      const x = ex * ct - ey * st;
+      const y = ex * st + ey * ct;
+      const wob = 1 + 0.01 * Math.sin(ph * 0.5 + wobPh);  // 极轻径向呼吸，避免完全僵硬
+      return { x: 50 + x * 50 * wob, y: 50 + y * 50 * wob };
+    }
+
+    (function buildConstellation() {
+      const NS = "http://www.w3.org/2000/svg";
+      MODELS.forEach((m, i) => {
+        // 轨道半径按“等面积”分布（r² 均匀递增）：r = √(0.15² + (0.85²−0.15²)·i/7)。
+        // 圆内面积随半径平方增长，故内圈给大间距、外圈收窄 —— 修正“内圈过密、外圈过疏”，内圈步长已推到极限。
+        // 分母 7 对应 8 条轨道（i=0..7），外圈上限 0.85 确保最外层仍在画面内。
+        const r = Math.sqrt(0.15 * 0.15 + (0.85 * 0.85 - 0.15 * 0.15) * i / 7);
+        const speedMul = 0.9 + (i % 4) * 0.08;             // 0.90/0.98/1.06/1.14，邻近行星略有快慢差
+        const omega = (ORBIT_LINEAR * speedMul) / r;       // 角速度：线速度恒定 => 内外行星皆流畅
+        const phase = i * GOLDEN;                          // 起始角，错落有致
+        const tilt = 0;                                    // 同向正圆（规则曲线），层次清晰、不交叠
+        const ryF = 0.85;                                  // 统一椭圆压扁系数（规则曲线型）
+        const wobPh = i * 1.7;
+
+        const p0 = orbitPos(r, omega, phase, tilt, ryF, wobPh, 0);
+
+        // 连线（恒星 -> 行星）
+        const line = document.createElementNS(NS, "line");
+        line.setAttribute("x1", "50"); line.setAttribute("y1", "50");
+        line.setAttribute("x2", p0.x.toFixed(2)); line.setAttribute("y2", p0.y.toFixed(2));
+        line.style.animationDelay = (i * 0.7) + "s";
+        linesSvg.appendChild(line);
+
+        // 节点
+        const node = document.createElement("div");
+        node.className = "node";
+        node.style.left = p0.x + "%";
+        node.style.top = p0.y + "%";
+        node.innerHTML = `<div class="dot"></div><div>${m.name}</div>`;
+        node.addEventListener("click", () => openModel(m, node));
+        constellation.appendChild(node);
+
+        constellationNodes.push({ el: node, line, r, omega, phase, tilt, ryF, wobPh });
+      });
+    })();
+
+    /* ===== 行星公转：每帧按恒定角速度推进轨道，连线同步跟随 ===== */
+    // 恒定线速度 + 无往返 => 视觉上连续顺滑，不再有“一格一格”的卡顿感；
+    // 尊重 prefers-reduced-motion（此时各行星静止于初始轨道位置）。
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      function driftTick(now) {
+        const t = now / 1000;
+        const ph = orbitPhase(t);   // 含“开场逐渐减速”包络的累计相位
+        for (const nd of constellationNodes) {
+          const p = orbitPos(nd.r, nd.omega, nd.phase, nd.tilt, nd.ryF, nd.wobPh, ph);
+          nd.el.style.left = p.x.toFixed(3) + "%";
+          nd.el.style.top = p.y.toFixed(3) + "%";
+          nd.line.setAttribute("x2", p.x.toFixed(3));
+          nd.line.setAttribute("y2", p.y.toFixed(3));
+        }
+        requestAnimationFrame(driftTick);
+      }
+      requestAnimationFrame(driftTick);
+    }
+
+    /* ===== 用 fetch 跟踪下载字节，得到真实百分比进度条 ===== */
+    async function fetchWithProgress(url, onProgress, knownSize) {
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error("下载模型文件失败：HTTP " + resp.status);
+      const total = (+resp.headers.get("Content-Length")) || knownSize || 0;
+      const reader = resp.body.getReader();
+      const chunks = [];
+      let received = 0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+        received += value.length;
+        const p = total ? Math.min(100, (received / total) * 100) : 0;
+        const mb = (received / 1048576).toFixed(1);
+        const totMb = total ? " / " + (total / 1048576).toFixed(1) + " MB" : "";
+        onProgress(p, mb + totMb);
+      }
+      let len = 0;
+      chunks.forEach((c) => (len += c.length));
+      const out = new Uint8Array(len);
+      let off = 0;
+      chunks.forEach((c) => { out.set(c, off); off += c.length; });
+      return out.buffer;
+    }
+
+    async function openModel(m, nodeEl) {
+      // 若上一次关闭的收拢动画尚未结束，先取消，避免状态打架
+      if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; }
+      const myOpen = ++openSerial;   // 本次打开的会话编号
+
+      // 圆形“时空漩涡”揭示的原点 = 被点击的行星中心（视口百分比坐标）
+      let ox = 50, oy = 50;
+      if (nodeEl) {
+        const rc = nodeEl.getBoundingClientRect();
+        ox = ((rc.left + rc.width / 2) / window.innerWidth) * 100;
+        oy = ((rc.top + rc.height / 2) / window.innerHeight) * 100;
+      }
+      overlay.style.setProperty("--ox", ox.toFixed(2) + "%");
+      overlay.style.setProperty("--oy", oy.toFixed(2) + "%");
+
+      // 从该星点炸开的冲击波光环
+      const warp = document.createElement("div");
+      warp.className = "warp";
+      warp.style.setProperty("--wx", ox + "%");
+      warp.style.setProperty("--wy", oy + "%");
+      document.body.appendChild(warp);
+      setTimeout(() => warp.remove(), 680);
+
+      overlay.classList.remove("hidden");
+      void overlay.offsetWidth;            // 强制重排，确保过渡从 clip(0) 开始
+      document.body.classList.add("overlay-open");
+      overlay.classList.add("show");
+
+      // 打开模型 → 背景音乐在 5s 内渐弱至 0
+      if (window.MemoryMusic) window.MemoryMusic.fadeOut(5000);
+      else if (window.parent && window.parent.MemoryMusic) window.parent.MemoryMusic.fadeOut(5000);
+
+      loading.classList.remove("hidden");
+      errBox.classList.add("hidden");
+      viewerHost.innerHTML = "";
+      bar.style.width = "0%";
+      pct.textContent = "0%";
+      phase.textContent = "① 下载模型中…";
+      let blobUrl = null;
+      let timedOut = false;
+      let watchdog = null;
+
+      try {
+        // 阶段一：下载模型文件（同源，真实百分比进度）
+        const buf = await fetchWithProgress(m.file, (p, mb) => {
+          if (timedOut) return;
+          bar.style.width = p + "%";
+          pct.textContent = (p ? Math.round(p) + "%" : "…");
+          phase.textContent = "① 下载模型中… " + mb;
+        }, m.size);
+        blobUrl = URL.createObjectURL(new Blob([buf]));
+        // 下载途中用户已关闭/重开，则放弃本次会话
+        if (myOpen !== openSerial) { URL.revokeObjectURL(blobUrl); return; }
+
+        // 阶段二：渲染处理（查看器内置进度回调 + 30s 看门狗）
+        phase.textContent = "② 渲染处理中…";
+        bar.style.width = "0%";
+        pct.textContent = "0%";
+
+        let Viewer, SceneFormat;
+        try {
+          const mod = await import("@mkkellogg/gaussian-splats-3d");
+          Viewer = mod.Viewer; SceneFormat = mod.SceneFormat;
+        } catch (ie) {
+          throw new Error("查看器库加载失败（import 步）：" + (ie && ie.message ? ie.message : ie));
+        }
+
+        viewer = new Viewer({
+          rootElement: viewerHost,
+          cameraUp: m.cameraUp || [0, -1, 0],   // 默认头朝上（模型原始坐标系里头在 -Y 方向）
+          initialCameraPosition: m.cameraPos || [0, 0, 6],
+          initialCameraLookAt: m.cameraLookAt || [0, 0, 0],
+          // 关键修复：关闭 SharedArrayBuffer 通信。
+          // 部署平台未设置 COOP/COEP 跨域隔离头，SharedArrayBuffer 不可用，
+          // 排序 Worker 会卡死导致 addSplatScene 永不 resolve（卡在"正在渲染"）。
+          sharedMemoryForWorkers: false,
+        });
+        // 调试/微调取景句柄：可在控制台访问 window.__viewer 调整相机
+        window.__viewer = viewer;
+
+        // 30s 看门狗：从渲染开始计时，超时即判定失败
+        const timeoutP = new Promise((_, reject) => {
+          watchdog = setTimeout(() => {
+            timedOut = true;
+            reject(new Error("RENDER_TIMEOUT"));
+          }, 30000);
+        });
+
+        const loadP = viewer.addSplatScene(blobUrl, {
+          format: SceneFormat.KSplat,
+          splatAlphaRemovalThreshold: 5,
+          showLoadingUI: false,
+          progressiveLoad: false,
+          // 库内置进度：status 0=下载 1=处理/渲染 2=完成
+          onProgress: (percent, label, status) => {
+            if (timedOut) return;
+            if (status === 1) {            // Processing（构建 GPU 缓冲 = 渲染处理）
+              const v = Math.max(0, Math.min(100, percent));
+              bar.style.width = v + "%";
+              pct.textContent = Math.round(v) + "%";
+              phase.textContent = "② 渲染处理中… " + (label || "");
+            } else if (status === 2) {     // Done
+              bar.style.width = "100%";
+              pct.textContent = "100%";
+            }
+          },
+        });
+
+        await Promise.race([loadP, timeoutP]);
+        clearTimeout(watchdog);
+        if (timedOut) throw new Error("RENDER_TIMEOUT");
+        // 若等待期间用户已关闭/重新打开，则放弃本次会话，避免“幽灵查看器”
+        if (myOpen !== openSerial) {
+          if (viewer) { try { viewer.dispose(); } catch (e) {} viewer = null; }
+          if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+          return;
+        }
+
+        viewer.start();
+
+        // 完全放开旋转（OrbitControls 的“自由轨道”模式）：
+        // - 水平方位角设为 ±∞：可绕着模型水平转无数圈（"绕好几圈"）。
+        // - 竖直极角设为 [0, π]：覆盖完整球面，能从正上方一直翻到正下方（可完全倒过来看）。
+        // 说明：OrbitControls 的 update() 每帧用 acos 重算极角，数学上上限于 [0,π]，
+        // 因此“越过极点连续翻滚”无法靠参数实现（强行放开 makeSafe 只会在极点触发 NaN 崩溃）；
+        // 当前配置已是 OrbitControls 能做到的“全角度自由”。
+        if (viewer && viewer.controls) {
+          ["perspectiveControls", "orthographicControls"].forEach((k) => {
+            const c = viewer[k];
+            if (c) {
+              c.minAzimuthAngle = -Infinity;
+              c.maxAzimuthAngle = Infinity;
+              c.minPolarAngle = 0;
+              c.maxPolarAngle = Math.PI;
+              c.update();
+            }
+          });
+        }
+
+        loading.classList.add("hidden");
+        currentUrl = blobUrl;
+      } catch (e) {
+        if (watchdog) clearTimeout(watchdog);
+        console.error(e);
+        if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+        loading.classList.add("hidden");
+        errBox.classList.remove("hidden");
+        const msg = (e && e.message) ? e.message : String(e);
+        let tip;
+        if (msg === "RENDER_TIMEOUT") {
+          tip = "渲染 30 秒内未完成，已判定为<b>失败</b>。可能原因：设备显存/算力不足，或部署平台对大文件（约 40\u201370MB）的访问受限。请换用桌面版 Chrome/Edge 重试，或关闭浮层后重试一次。";
+        } else if (/Failed to fetch|NetworkError|网络/i.test(msg)) {
+          tip = "多半是模型文件下载中途被网络中断。<b>关闭浮层后重试一次</b>通常即可。";
+        } else if (/format|KSplat|splat/i.test(msg)) {
+          tip = "模型格式解析失败，请确认 <b>.ksplat</b> 文件完整且清单路径正确。";
+        } else if (/WebGL|context/i.test(msg)) {
+          tip = "当前浏览器/设备可能不支持 WebGL，请换用桌面版 Chrome/Edge 重试。";
+        } else {
+          tip = "若持续失败，可能是部署平台对该大文件做了访问限制，或设备显存不足。";
+        }
+        errBox.innerHTML = "模型加载失败：<br><b>" + msg + "</b><br><br>" + tip;
+      }
+    }
+
+    function closeModel() {
+      if (axisMode) setAxisMode(false);
+      // 先触发圆形收拢过渡（把画面“吸”回星点），动画结束后再彻底释放资源
+      document.body.classList.remove("overlay-open");
+      overlay.classList.remove("show");
+      const v = viewer; viewer = null;
+      const url = currentUrl; currentUrl = null;
+      if (closeTimer) clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => {
+        closeTimer = null;
+        if (overlay.classList.contains("show")) return;   // 期间又被重新打开
+        if (v) { try { v.dispose(); } catch (e) {} }
+        if (url) { URL.revokeObjectURL(url); }
+        viewerHost.innerHTML = "";
+        loading.classList.add("hidden");
+        errBox.classList.add("hidden");
+        overlay.classList.add("hidden");
+      }, 640);
+    }
+
+    closeBtn.addEventListener("click", closeModel);
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModel(); });
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      if (!msgModal.classList.contains("hidden")) { closeMsg(); return; }
+      if (overlay.classList.contains("show")) closeModel();
+    });
+
+    /* ===== 留言板：共享云端（CloudBase HTTP 云函数，前端 fetch 直连）===== */
+    const GUESTBOOK_KEY = "memory_site_guestbook_v1";
+    const MAX_MSGS = 300;
+    // 部署后由 tcb fn detail 获取的 HTTP 触发地址（部署脚本会回填此占位符）
+    const GUESTBOOK_URL = "__GUESTBOOK_HTTP_URL__";
+    const msgModal = document.getElementById("msgModal");
+    const msgBtn = document.getElementById("msgBtn");
+    const msgClose = document.getElementById("msgClose");
+    const msgList = document.getElementById("msgList");
+    const msgName = document.getElementById("msgName");
+    const msgText = document.getElementById("msgText");
+    const msgSend = document.getElementById("msgSend");
+    const msgCount = document.getElementById("msgCount");
+    const msgStatus = document.getElementById("msgStatus");
+    // 让“是否真的连上云”可见，避免悄悄回退到本机存储误导用户
+    let cloudMode = "unknown"; // 'cloud' | 'local' | 'unknown'
+
+    const escapeHtml = (s) => s.replace(/[&<>"']/g, (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    const fmtTime = (ts) => {
+      let t = Number(ts) || Date.now();
+      const d = new Date(t);
+      const p = (n) => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+
+    // ---- 云函数调用：HTTP POST，无需 SDK / 无需登录 ----
+    async function callFn(action, payload) {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 15000);
+      const r = await fetch(GUESTBOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...(payload || {}) }),
+        signal: ctrl.signal,
+      });
+      clearTimeout(timer);
+      return await r.json();
+    }
+
+    // ---- 数据读写：云端优先，失败回退本地 ----
+    async function loadMsgs() {
+      try {
+        const r = await callFn("list");
+        if (r && r.ok) { cloudMode = "cloud"; return r.data; }
+      } catch (e) { console.warn("[guestbook] 云端读取失败，回退本地：", e); }
+      cloudMode = "local";
+      try { return JSON.parse(localStorage.getItem(GUESTBOOK_KEY)) || []; }
+      catch (e) { return []; }
+    }
+    async function pushMsg(name, text) {
+      const item = { name, text };
+      if (cloudMode !== "local") {
+        try { const r = await callFn("add", { item }); if (r && r.ok) return; }
+        catch (e) { console.warn("[guestbook] 云端写入失败，回退本地：", e); }
+      }
+      cloudMode = "local";
+      try {
+        const arr = JSON.parse(localStorage.getItem(GUESTBOOK_KEY)) || [];
+        arr.push({ name, text, ts: Date.now() });
+        localStorage.setItem(GUESTBOOK_KEY, JSON.stringify(arr.slice(-MAX_MSGS)));
+      } catch (e) {}
+    }
+
+    async function renderMsgs() {
+      const arr = await loadMsgs();
+      msgCount.textContent = arr.length ? `（${arr.length}）` : "";
+      if (msgStatus) {
+        msgStatus.textContent = cloudMode === "cloud"
+          ? "☁️ 云端共享 · 所有人可见"
+          : (cloudMode === "local" ? "💾 云端暂不可用 · 仅本机可见" : "⏳ 连接中…");
+      }
+      if (!arr.length) {
+        msgList.innerHTML = `<div class="msg-empty">还没有留言，<br>来当第一个写下记忆的人吧 🌟</div>`;
+        return;
+      }
+      msgList.innerHTML = arr.slice().reverse().map((m) => `
+        <div class="msg-item">
+          <div class="msg-meta">
+            <span class="msg-name">${escapeHtml(m.name || "匿名")}</span>
+            <span class="msg-time">${fmtTime(m.ts)}</span>
+          </div>
+          <div class="msg-text">${escapeHtml(m.text)}</div>
+        </div>`).join("");
+    }
+
+    async function openMsg() { await renderMsgs(); msgModal.classList.remove("hidden"); }
+    function closeMsg() { msgModal.classList.add("hidden"); }
+
+    msgBtn.addEventListener("click", openMsg);
+    msgClose.addEventListener("click", closeMsg);
+    msgModal.addEventListener("click", (e) => { if (e.target === msgModal) closeMsg(); });
+    msgSend.addEventListener("click", async () => {
+      const text = msgText.value.trim();
+      if (!text) { msgText.focus(); return; }
+      const name = msgName.value.trim() || "匿名";
+      msgSend.disabled = true;
+      await pushMsg(name, text);
+      msgText.value = "";
+      await renderMsgs();
+      msgSend.disabled = false;
+      msgList.scrollTop = 0;
+    });
+    msgText.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") msgSend.click();
+    });
+    // 进入页面即尝试连接云端并刷新计数（不弹窗）
+    (async () => {
+      const a = await loadMsgs();
+      msgCount.textContent = a.length ? `（${a.length}）` : "";
+    })();
+  </script>
+
+  <script>

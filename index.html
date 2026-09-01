@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>梦的检查点</title>
+<link rel="preload" href="./music/music1.m4a" as="audio" type="audio/mp4" />
+<link rel="preload" href="./music/music2.m4a" as="audio" type="audio/mp4" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Dancing+Script:wght@400;700&family=Yomogi&family=Nanum+Pen+Script&family=Marck+Script&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+      "Microsoft YaHei", "Segoe UI", sans-serif;
+    overflow: hidden;
+    background: #f6f8ff;
+    color: #3a3a4a;
+  }
+
+  /* ===== 铺满整屏的浅色系朦胧背景 ===== */
+  .bg {
+    position: fixed; inset: 0; overflow: hidden; z-index: 0;
+    filter: blur(100px) saturate(145%);
+  }
+  .blob { position: absolute; border-radius: 50%; opacity: 0.62; will-change: transform, filter; }
+  .blob.b1 { width: 135vmax; height: 135vmax; left: -35vmax; top: -35vmax;
+    background: radial-gradient(circle at 40% 40%, #ffb0d0, transparent 67%);
+    animation: float1 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b2 { width: 128vmax; height: 128vmax; right: -38vmax; top: -30vmax;
+    background: radial-gradient(circle at 60% 40%, #aecbff, transparent 67%);
+    animation: float2 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b3 { width: 130vmax; height: 130vmax; left: -25vmax; bottom: -40vmax;
+    background: radial-gradient(circle at 40% 60%, #d4bcff, transparent 67%);
+    animation: float3 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b4 { width: 122vmax; height: 122vmax; right: -30vmax; bottom: -35vmax;
+    background: radial-gradient(circle at 50% 50%, #a6ecdd, transparent 67%);
+    animation: float4 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b5 { width: 120vmax; height: 120vmax; left: 18vmax; top: 8vmax;
+    background: radial-gradient(circle at 50% 50%, #ffd79a, transparent 67%);
+    animation: float5 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b6 { width: 118vmax; height: 118vmax; left: 30vmax; bottom: 6vmax;
+    background: radial-gradient(circle at 50% 50%, #ffb6b6, transparent 67%);
+    animation: float6 20s ease-in-out infinite, hue 20s linear infinite; }
+  .blob.b7 { width: 115vmax; height: 115vmax; right: 12vmax; top: 22vmax;
+    background: radial-gradient(circle at 50% 50%, #b3ecff, transparent 67%);
+    animation: float7 20s ease-in-out infinite, hue 20s linear infinite; }
+
+  @keyframes hue { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+  @keyframes float1 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(12vmax,8vmax) scale(1.12)} 50%{transform:translate(5vmax,16vmax) scale(1.04)} 75%{transform:translate(-7vmax,9vmax) scale(1.14)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float2 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(-11vmax,10vmax) scale(1.1)} 50%{transform:translate(-5vmax,4vmax) scale(1.16)} 75%{transform:translate(-13vmax,-6vmax) scale(1.06)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float3 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(10vmax,-8vmax) scale(1.14)} 50%{transform:translate(16vmax,-3vmax) scale(1.05)} 75%{transform:translate(6vmax,-12vmax) scale(1.12)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float4 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(-9vmax,-9vmax) scale(1.1)} 50%{transform:translate(-14vmax,-2vmax) scale(1.15)} 75%{transform:translate(-6vmax,11vmax) scale(1.07)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float5 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(8vmax,12vmax) scale(1.13)} 50%{transform:translate(-6vmax,10vmax) scale(1.05)} 75%{transform:translate(10vmax,-8vmax) scale(1.11)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float6 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(-10vmax,7vmax) scale(1.12)} 50%{transform:translate(7vmax,13vmax) scale(1.06)} 75%{transform:translate(12vmax,-6vmax) scale(1.13)} 100%{transform:translate(0,0) scale(1)} }
+  @keyframes float7 { 0%{transform:translate(0,0) scale(1)} 25%{transform:translate(9vmax,-10vmax) scale(1.11)} 50%{transform:translate(-8vmax,-12vmax) scale(1.14)} 75%{transform:translate(-11vmax,6vmax) scale(1.05)} 100%{transform:translate(0,0) scale(1)} }
+
+  .veil {
+    position: fixed; inset: 0; z-index: 1;
+    background: radial-gradient(ellipse at center,
+      rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 55%);
+    pointer-events: none;
+  }
+
+  /* ===== 内容 ===== */
+  .stage {
+    position: relative; z-index: 2; height: 100%;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; text-align: center; gap: 56px; padding: 24px;
+  }
+  #stage-text { display: flex; align-items: center; justify-content: center; min-height: 160px; width: 100%; }
+  .hanzi-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: center;
+    gap: clamp(2px, 1.4vw, 16px); max-width: 94vw; }
+
+  /* 汉字手写体逐笔书写 */
+  @keyframes hzd { to { stroke-dashoffset: 0; } }
+  @keyframes hzf { to { fill-opacity: 1; } }
+
+  /* 各国语言：按字母逐笔书写 */
+  .latin-svg { width: 94vw; max-width: 1060px; height: 36vh; min-height: 190px; overflow: visible; }
+  .latin-text { fill: var(--c, #4a4a6a); fill-opacity: 0;
+    stroke: var(--c, #4a4a6a); stroke-width: 1.8;
+    stroke-linejoin: round; stroke-linecap: round; }
+  @keyframes lzd { to { stroke-dashoffset: 0; } }
+  @keyframes lzf { to { fill-opacity: 1; } }
+
+  /* 访问记忆 按钮（唯一保留的静态文字） */
+  .enter {
+    font-family: inherit; cursor: pointer; -webkit-appearance: none; appearance: none;
+    display: inline-flex; align-items: center; gap: 12px;
+    padding: 16px 40px; font-size: 18px; letter-spacing: 0.28em; text-indent: 0.28em;
+    color: #3a3a4a; text-decoration: none; border-radius: 999px;
+    border: 1px solid rgba(58,58,74,0.12); background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 30px rgba(58,58,74,0.08), inset 0 0 18px rgba(255,255,255,0.5);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s, background .35s, border-color .35s;
+  }
+  .enter:hover {
+    transform: translateY(-3px) scale(1.03); background: rgba(255,255,255,0.85);
+    border-color: rgba(58,58,74,0.24);
+    box-shadow: 0 14px 44px rgba(255,150,200,0.26), 0 10px 40px rgba(140,170,255,0.22), inset 0 0 22px rgba(255,255,255,0.6);
+  }
+  .enter .arrow { display: inline-block; transition: transform .35s; }
+  .enter:hover .arrow { transform: translateX(6px); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .blob, .hanzi-row path, .latin-text, .latin-text * { animation: none !important; }
+  }
+
+  /* ===== 手机端适配 ===== */
+  @media (max-width: 560px) {
+    .stage { gap: 36px; padding: 16px; }
+    .enter { padding: 13px 28px; font-size: 16px; letter-spacing: 0.2em; }
+    #stage-text { min-height: 120px; }
+    .hanzi-row path { stroke-width: 7; }
+  }
+  @media (max-width: 380px) {
+    .stage { gap: 28px; }
+    .enter { padding: 12px 22px; font-size: 15px; }
+  }
+
+  /* ===== 彩蛋：可切换的壁纸层 + 中央白纱 + 提示 toast ===== */
+  .wp {
+    position: fixed; inset: 0; z-index: 0;
+    background-size: cover; background-position: center; background-repeat: no-repeat;
+    opacity: 0; transition: opacity 0.7s ease;
+    pointer-events: none;
+  }
+  .wp.active { opacity: 1; }
+
+  .wp-veil {
+    position: fixed; inset: 0; z-index: 1;
+    background: radial-gradient(ellipse 70% 60% at center,
+      rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.22) 45%, rgba(255,255,255,0) 78%);
+    opacity: 0; transition: opacity 0.7s ease;
+    pointer-events: none;
+  }
+  body.easter-egg .wp-veil { opacity: 1; }
+
+  .bg, .veil { transition: opacity 0.7s ease; }
+  body.easter-egg .bg,
+  body.easter-egg .veil { opacity: 0; }
+
+  .toast {
+    position: fixed; left: 50%; bottom: 10%;
+    transform: translateX(-50%) translateY(16px);
+    z-index: 30; padding: 12px 26px;
+    background: rgba(255,255,255,0.88);
+    color: #3a3a4a; font-size: 16px; letter-spacing: 0.12em;
+    border-radius: 999px;
+    box-shadow: 0 10px 36px rgba(60,50,80,0.18);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    opacity: 0; transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* ===== 背景音乐开关 ===== */
+  .music-toggle {
+    position: fixed; right: 16px; bottom: 16px; z-index: 60;
+    width: 46px; height: 46px; border-radius: 50%;
+    border: 1px solid rgba(58,58,74,0.14);
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 8px 26px rgba(58,58,74,0.12);
+    font-size: 20px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .3s, background .3s;
+  }
+  .music-toggle:hover { transform: translateY(-2px) scale(1.05); background: rgba(255,255,255,0.85); }
+
+  /* ===== 记忆页 iframe 浮层：首页与背景音乐常驻，音乐跨页无缝延续 ===== */
+  #mem-frame {
+    position: fixed; inset: 0; z-index: 45; border: 0;
+    width: 100%; height: 100%; background: #f6f8ff; display: none;
+  }
+  #mem-frame.show { display: block; }
+</style>
+</head>
+<body>
+  <div class="bg" aria-hidden="true">
+    <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+    <div class="blob b4"></div><div class="blob b5"></div><div class="blob b6"></div><div class="blob b7"></div>
+  </div>
+  <div class="veil" aria-hidden="true"></div>
+
+  <!-- 彩蛋：四张可切换的壁纸（双击非按钮区循环切换） -->
+  <div id="wp-a" class="wp" aria-hidden="true"></div>
+  <div id="wp-b" class="wp" aria-hidden="true"></div>
+  <div class="wp-veil" aria-hidden="true"></div>
+
+  <!-- 彩蛋提示 -->
+  <div id="toast" class="toast" aria-hidden="true"></div>
+
+  <!-- 背景音乐开关 -->
+  <button id="music-toggle" class="music-toggle" title="背景音乐开关" aria-label="背景音乐开关">🔊</button>
+
+  <main class="stage">
+    <div id="stage-text" role="img" aria-label="梦的检查点"></div>
+    <button id="enterBtn" class="enter" type="button">访问记忆 <span class="arrow">→</span></button>
+  </main>
+
+<script src="hanzi-data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script>
+  // 内容：中文「梦的检查点」用「她屿山海」字体（可爱手写风），按轮廓逐笔写出，且永远第一个出现；
+  // 其余各国语言按字母逐笔书写。语言共 10 种（中文 + 7 欧洲 + 日 + 韩）。
+  const PHRASES = [
+    { t: "梦的检查点", type: "hanzi" },                                                // 0 中文（必须第一）
+    { t: "Dream Checkpoint", type: "latin", f: "Caveat" },                            // 英语
+    { t: "Point de contrôle des rêves", type: "latin", f: "Dancing Script" },         // 法语
+    { t: "Punto de control de los sueños", type: "latin", f: "Caveat" },              // 西班牙语
+    { t: "Traum-Kontrollpunkt", type: "latin", f: "Dancing Script" },                 // 德语
+    { t: "Punto di controllo dei sogni", type: "latin", f: "Caveat" },               // 意大利语
+    { t: "Ponto de controle dos sonhos", type: "latin", f: "Dancing Script" },        // 葡萄牙语
+    { t: "Контрольная точка снов", type: "latin", f: "Marck Script" },                // 俄语
+    { t: "夢のチェックポイント", type: "latin", f: "Yomogi" },                          // 日语
+    { t: "꿈의 체크포인트", type: "latin", f: "Nanum Pen Script" },                     // 韩语
+  ];
+  const COLORS = ["#6c5ce7", "#e84393", "#0984e3", "#00a389",
+                  "#e17055", "#8e44ad", "#d63031", "#e58e26", "#2d9cdb"];
+
+  const NS = "http://www.w3.org/2000/svg";
+  const stage = document.getElementById("stage-text");
+  const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let timer = null;
+
+  function charSize() { return Math.min(Math.max(window.innerWidth * 0.16, 74), 142); }
+  function fontsReady() { try { return document.fonts.ready; } catch (e) { return Promise.resolve(); } }
+
+  /* ===================== 中文：手写字体逐笔写出 ===================== */
+  let _font = null, _fontLoading = null;
+  function getFont() {
+    if (_font) return Promise.resolve(_font);
+    if (_fontLoading) return _fontLoading;
+    _fontLoading = new Promise((res, rej) => {
+      if (typeof opentype === "undefined") { rej(new Error("opentype 未加载")); return; }
+      opentype.load("fonts/TaYuShanHai.ttf", (err, font) => {
+        if (err) rej(err); else { _font = font; res(font); }
+      });
+    });
+    return _fontLoading;
+  }
+  function commandsToD(cmds) {
+    let d = "";
+    for (const c of cmds) {
+      if (c.type === "M") d += `M ${c.x} ${c.y} `;
+      else if (c.type === "L") d += `L ${c.x} ${c.y} `;
+      else if (c.type === "C") d += `C ${c.x1} ${c.y1} ${c.x2} ${c.y2} ${c.x} ${c.y} `;
+      else if (c.type === "Q") d += `Q ${c.x1} ${c.y1} ${c.x} ${c.y} `;
+      else if (c.type === "Z") d += "Z ";
+    }
+    return d;
+  }
+  function splitContours(cmds) {
+    const out = []; let cur = [];
+    for (const c of cmds) {
+      if (c.type === "M" && cur.length) { out.push(cur); cur = []; }
+      cur.push(c);
+    }
+    if (cur.length) out.push(cur);
+    return out;
+  }
+
+  async function renderHanzi(text) {
+    let font;
+    try { font = await getFont(); }
+    catch (e) { return renderHanziLegacy(text); } // 兜底：本地笔画数据
+
+    stage.innerHTML = "";
+    const row = document.createElement("div");
+    row.className = "hanzi-row";
+    stage.appendChild(row);
+
+    const fontSize = 240;
+    const chars = [...text];
+    const col = rnd(COLORS); // 整词统一颜色
+
+    let penX = 0, minY1 = 1e9, maxY2 = -1e9;
+    const items = [];
+    chars.forEach((ch) => {
+      const gp = font.getPath(ch, penX, 0, fontSize);
+      const bb = gp.getBoundingBox();
+      if (bb.y1 < minY1) minY1 = bb.y1;
+      if (bb.y2 > maxY2) maxY2 = bb.y2;
+      items.push({ contours: splitContours(gp.commands), gp });
+      penX += font.getAdvanceWidth(ch, fontSize);
+    });
+
+    const pad = 30;
+    const totalW = penX;
+    const totalH = (maxY2 - minY1) + pad * 2;
+
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${totalW} ${totalH}`);
+    svg.style.width = "min(94vw, 1000px)";
+    svg.style.height = "42vh";
+    svg.style.overflow = "visible";
+    row.appendChild(svg);
+
+    const g = document.createElementNS(NS, "g");
+    g.setAttribute("transform", `translate(0, ${-minY1 + pad})`);
+    svg.appendChild(g);
+
+    let cursor = 0;
+    items.forEach((it) => {
+      it.contours.forEach((contour) => {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", commandsToD(contour));
+        p.setAttribute("fill", col);
+        p.style.fillOpacity = "0";
+        p.setAttribute("stroke", col);
+        p.style.strokeWidth = "9";
+        p.style.strokeLinejoin = "round";
+        p.style.strokeLinecap = "round";
+        g.appendChild(p);
+
+        const L = p.getTotalLength ? p.getTotalLength() : 200;
+        p.style.strokeDasharray = L;
+        if (reduce) {
+          p.style.strokeDashoffset = "0";
+          p.style.fillOpacity = "1";
+          return;
+        }
+        p.style.strokeDashoffset = L;
+        const dur = Math.min(0.6, Math.max(0.1, L / 3000));
+        const start = cursor / 1000;
+        p.style.animation =
+          `hzd ${dur}s linear ${start}s forwards, ` +
+          `hzf 0.18s linear ${(start + dur)}s forwards`;
+        cursor += dur * 1000 + 25;
+      });
+    });
+
+    return cursor + 2400;
+  }
+
+  // 兜底：本地笔画数据（HANZI_DATA），按笔顺逐笔书写
+  function renderHanziLegacy(text) {
+    stage.innerHTML = "";
+    const row = document.createElement("div");
+    row.className = "hanzi-row";
+    stage.appendChild(row);
+    const S = charSize();
+    const chars = [...text];
+    const col = rnd(COLORS);
+    let cursor = 0;
+    chars.forEach((ch) => {
+      const cell = document.createElement("div");
+      cell.className = "hanzi-cell";
+      cell.style.width = S + "px"; cell.style.height = S + "px";
+      row.appendChild(cell);
+      const data = window.HANZI_DATA && window.HANZI_DATA[ch];
+      if (!data) {
+        cell.textContent = ch; cell.style.color = col;
+        cell.style.fontSize = (S * 0.8) + "px"; cell.style.lineHeight = S + "px";
+        cursor += 800; return;
+      }
+      const svg = document.createElementNS(NS, "svg");
+      svg.setAttribute("viewBox", "0 0 1024 1024");
+      svg.style.width = "100%"; svg.style.height = "100%";
+      cell.appendChild(svg);
+      const g = document.createElementNS(NS, "g");
+      g.setAttribute("transform", "scale(1,-1) translate(0,-1024)");
+      svg.appendChild(g);
+      const n = data.strokes.length;
+      const per = Math.max(120, Math.round(1000 / n));
+      data.strokes.forEach((d, i) => {
+        const p = document.createElementNS(NS, "path");
+        p.setAttribute("d", d); p.setAttribute("fill", col); p.style.fillOpacity = "0";
+        p.setAttribute("stroke", col); p.style.strokeWidth = "16";
+        p.style.strokeLinejoin = "round"; p.style.strokeLinecap = "round";
+        g.appendChild(p);
+        const L = p.getTotalLength ? p.getTotalLength() : 1200;
+        p.style.strokeDasharray = L;
+        if (reduce) { p.style.strokeDashoffset = "0"; p.style.fillOpacity = "1"; }
+        else {
+          p.style.strokeDashoffset = L;
+          const drawStart = (cursor + i * per) / 1000;
+          const drawDur = per / 1000;
+          const fillStart = (cursor + (i + 1) * per) / 1000;
+          p.style.animation =
+            `hzd ${drawDur}s linear ${drawStart}s forwards, ` +
+            `hzf 0.22s linear ${fillStart}s forwards`;
+        }
+      });
+      cursor += n * per + 260;
+    });
+    return cursor + 2600;
+  }
+
+  /* ===================== 各国语言：按字母逐个书写 ===================== */
+  async function renderLatin(text, font, dir) {
+    stage.innerHTML = "";
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("class", "latin-svg");
+    svg.setAttribute("viewBox", "0 0 1000 300");
+    stage.appendChild(svg);
+    const col = rnd(COLORS);
+    svg.style.setProperty("--c", col);
+
+    const n = [...text].length;
+    const fs = n <= 12 ? 150 : n <= 20 ? 120 : n <= 28 ? 96 : 76;
+
+    const txt = document.createElementNS(NS, "text");
+    txt.setAttribute("x", "500");
+    txt.setAttribute("y", "180");
+    txt.setAttribute("text-anchor", "middle");
+    txt.setAttribute("dominant-baseline", "middle");
+    txt.setAttribute("class", "latin-text");
+    txt.setAttribute("font-size", fs);
+    txt.style.fontFamily = `'${font}', cursive`;
+    if (dir === "rtl") txt.style.direction = "rtl";
+
+    const letters = [...text];
+    letters.forEach((ch) => {
+      const ts = document.createElementNS(NS, "tspan");
+      ts.textContent = ch;
+      ts.style.fill = col; ts.style.fillOpacity = "0";
+      ts.style.stroke = col; ts.style.strokeWidth = "1.8";
+      txt.appendChild(ts);
+    });
+    svg.appendChild(txt);
+
+    if (reduce) {
+      letters.forEach((_, i) => {
+        txt.children[i].style.fillOpacity = "1";
+        txt.children[i].style.strokeDashoffset = "0";
+      });
+      return 0;
+    }
+
+    await fontsReady();
+    const letterDur = 130;
+    letters.forEach((_, i) => {
+      const ts = txt.children[i];
+      const L = ts.getComputedTextLength ? ts.getComputedTextLength() : 60;
+      ts.style.strokeDasharray = L;
+      ts.style.strokeDashoffset = L;
+      const start = (i * letterDur) / 1000;
+      ts.style.animation =
+        `lzd ${letterDur / 1000}s linear ${start}s forwards, ` +
+        `lzf 0.2s linear ${(start + letterDur / 1000)}s forwards`;
+    });
+    return n * letterDur + 2600;
+  }
+
+  async function show(i) {
+    const p = PHRASES[i];
+    let hold;
+    if (p.type === "hanzi") hold = await renderHanzi(p.t);
+    else hold = await renderLatin(p.t, p.f, p.dir);
+    timer = setTimeout(() => show((i + 1) % PHRASES.length), hold + 200);
+  }
+
+  show(0);
+</script>
+
+<script>
+/* ===== 彩蛋 ===== */
+(function () {
+  const WALLPAPERS = [
+    './wallpapers/01.jpg',
+    './wallpapers/02.jpg',
+    './wallpapers/03.png',
+    './wallpapers/04.jpg',
+  ];
+  const wpA = document.getElementById('wp-a');
+  const wpB = document.getElementById('wp-b');
+  const toast = document.getElementById('toast');
+  let wpIdx = -1;
+  let wpToggle = true;
+  let toastTimer = null;
+  let clickTimes = [];
+
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2200);
+  }
+
+  function cycleWallpaper() {
+    wpIdx = (wpIdx + 1) % WALLPAPERS.length;
+    const incoming = wpToggle ? wpA : wpB;
+    const outgoing = wpToggle ? wpB : wpA;
+    incoming.style.backgroundImage = "url('" + WALLPAPERS[wpIdx] + "')";
+    void incoming.offsetWidth; // 强制 reflow，确保淡入过渡生效
+    incoming.classList.add('active');
+    outgoing.classList.remove('active');
+    wpToggle = !wpToggle;
+    document.body.classList.add('easter-egg');
+    showToast('恭喜你发现彩蛋');
+  }
+
+  // 彩蛋一：双击非按钮/非壁纸层区域 → 循环切换壁纸
+  document.addEventListener('dblclick', function (e) {
+    if (e.target.closest('a, button, .enter, .toast, .wp, .wp-veil')) return;
+    clickTimes = []; // 双击重置点击计数，避免与彩蛋二互相触发
+    cycleWallpaper();
+  });
+
+  // 彩蛋二：10 秒内非交互区域点击超过 12 下 → 跳转原神
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('a, button, .enter, .toast, .wp, .wp-veil')) return;
+    const now = Date.now();
+    clickTimes.push(now);
+    while (clickTimes.length && now - clickTimes[0] > 10000) clickTimes.shift();
+    if (clickTimes.length > 12) {
+      window.location.href = 'https://www.yuanshen.com/';
+    }
+  });
+})();
+</script>
+
+<script>
+/* ===== 背景音乐：随机一首、打开网址即自动播放 ===== */
+  (function () {
+    const SONGS = ['./music/music1.m4a', './music/music2.m4a'];
+    const SS_IDX = 'mem_music_idx', SS_ON = 'mem_music_on', SS_POS = 'mem_music_pos';
+    const btn = document.getElementById('music-toggle');
+    let audio = null, started = false, fadingOut = false, rafId = 0;
+
+    function pickIdx() {
+      let i = parseInt(sessionStorage.getItem(SS_IDX) || '', 10);
+      if (!Number.isInteger(i) || i < 0 || i >= SONGS.length) {
+        i = Math.floor(Math.random() * SONGS.length);
+        sessionStorage.setItem(SS_IDX, String(i));
+      }
+      return i;
+    }
+    function makeAudio() {
+      const a = new Audio(SONGS[pickIdx()]);
+      a.loop = true; a.volume = 0; a.preload = 'auto';
+      return a;
+    }
+    // 页面加载即创建并预加载音频（仅缓冲、不发声），消除首次手势后的播放延迟
+    function preload() {
+      if (audio) return audio;
+      audio = makeAudio();
+      try { audio.load(); } catch (e) {}
+      return audio;
+    }
+    // 持续记录播放进度，供跨页“继续播放”而非从头重放
+    function savePos() {
+      if (audio && !audio.paused) {
+        try { sessionStorage.setItem(SS_POS, String(audio.currentTime || 0)); } catch (e) {}
+      }
+    }
+    // 恢复到上次进度（同一首歌续播）
+    function restorePos() {
+      if (!audio) return;
+      const pos = parseFloat(sessionStorage.getItem(SS_POS) || '0');
+      if (!pos || !isFinite(pos)) return;
+      const apply = () => { try { audio.currentTime = pos; } catch (e) {} };
+      if (audio.readyState >= 1) apply();
+      else audio.addEventListener('loadedmetadata', apply, { once: true });
+    }
+    function fadeTo(target, ms, done) {
+      if (!audio) { done && done(); return; }
+      cancelAnimationFrame(rafId);
+      const from = audio.volume, t0 = performance.now();
+      (function step(now) {
+        const k = Math.min(1, (now - t0) / ms);
+        audio.volume = Math.max(0, Math.min(1, from + (target - from) * k));
+        if (k < 1) rafId = requestAnimationFrame(step);
+        else done && done();
+      })(t0);
+    }
+    function start() {
+      if (started) { if (sessionStorage.getItem(SS_ON) === '1') restorePos(); return; }
+      started = true; fadingOut = false;
+      preload();
+      audio.muted = false;
+      if (sessionStorage.getItem(SS_ON) === '1') restorePos();
+      audio.play().then(() => {
+        sessionStorage.setItem(SS_ON, '1');
+        if (fadingOut) { audio.volume = 0; try { audio.pause(); } catch (e) {} if (btn) btn.textContent = '🔇'; return; }
+        fadeTo(0.55, 1200); if (btn) btn.textContent = '🔊';
+      }).catch(() => { started = false; });
+    }
+    function toggle() {
+      if (!audio) { start(); return; }
+      if (audio.paused || audio.muted || audio.volume < 0.02) {
+        fadingOut = false;
+        audio.muted = false;
+        audio.play().then(() => { fadeTo(0.55, 700); if (btn) btn.textContent = '🔊'; }).catch(() => {});
+      } else {
+        fadeTo(0, 600, () => { try { audio.pause(); } catch (e) {} });
+        if (btn) btn.textContent = '🔇';
+      }
+    }
+    window.MemoryMusic = {
+      fadeOut(ms) {
+        fadingOut = true;
+        if (!audio) { if (btn) btn.textContent = '🔇'; return; }
+        fadeTo(0, ms || 5000, () => { if (audio) { try { audio.pause(); } catch (e) {} } if (btn) btn.textContent = '🔇'; });
+      }
+    };
+    // 持续记录进度 + 离开页面前保存，确保进入第二页/刷新后能续播
+    setInterval(savePos, 1000);
+    window.addEventListener('pagehide', savePos);
+    window.addEventListener('beforeunload', savePos);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) savePos(); });
+    // 首屏立即预加载，缩短首次播放延迟
+    preload();
+
+    // —— 自动播放：打开网址即尝试出声，无需点击 ——
+    // 浏览器（如 Chrome）对“有声自动播放”按站点媒体参与度(MEI)放行：
+    // 你已在该网址多次播放过音乐，参与度足够高，通常会直接允许；
+    // 若仍被策略拦截（如全新访客），则退化为“首次交互时”再播放。
+    let gestureBound = false;
+    function attachFirstGesture() {
+      if (gestureBound) return; gestureBound = true;
+      const g = () => { if (!started) start(); };
+      document.addEventListener('pointerdown', g, { once: true });
+      document.addEventListener('keydown', g, { once: true });
+      document.addEventListener('touchstart', g, { once: true });
+    }
+    // 被拦截时：先静音自动播放（浏览器一律允许），首次交互再取消静音出声
+    function attachUnmute() {
+      const unmute = () => {
+        if (audio) { audio.muted = false; fadeTo(0.55, 800); }
+        if (btn) btn.textContent = '🔊';
+        ['pointerdown', 'keydown', 'touchstart'].forEach(e => document.removeEventListener(e, unmute));
+      };
+      ['pointerdown', 'keydown', 'touchstart'].forEach(e => document.addEventListener(e, unmute, { once: true }));
+    }
+    function autoStart() {
+      preload();
+      if (sessionStorage.getItem(SS_ON) === '1') restorePos();
+      // 1) 先试有声自动播放：高 MEI 浏览器（你已多次播放）会直接放行 → 零点击出声
+      audio.muted = false;
+      audio.play()
+        .then(() => {
+          started = true; fadingOut = false;
+          sessionStorage.setItem(SS_ON, '1');
+          fadeTo(0.55, 1500); if (btn) btn.textContent = '🔊';
+        })
+        .catch(() => {
+          // 2) 有声被拦 → 静音自动播放（必定允许），随后首次交互取消静音
+          audio.muted = true; audio.volume = 0.55;
+          audio.play()
+            .then(() => {
+              started = true; fadingOut = false;
+              sessionStorage.setItem(SS_ON, '1');
+              if (btn) btn.textContent = '🔇';
+              attachUnmute();
+            })
+            .catch(() => {
+              // 极端：静音也失败 → 退回首次手势播放
+              started = false;
+              attachFirstGesture();
+            });
+        });
+    }
+    autoStart();
+    btn.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+  })();
+</script>
+
+  <iframe id="mem-frame" title="访问记忆" tabindex="-1"></iframe>
+  <script>
+  /* 用 iframe 浮层打开记忆页：首页与背景音乐常驻，音乐跨页无缝延续 */
+  (function () {
+    var frame = document.getElementById('mem-frame');
+    var btn = document.getElementById('enterBtn');
+    var open = false;
+    window.closeMemory = function () { open = false; frame.classList.remove('show'); frame.removeAttribute('src'); };
+    btn.addEventListener('click', function () {
+      if (open) return; open = true;
+      frame.src = 'memory.html';
+      frame.classList.add('show');
+    });
+  })();
+  </script>
+</body>
+</html>
