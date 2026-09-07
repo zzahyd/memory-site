@@ -355,6 +355,7 @@
       { name: "刘星宇组", file: "models/liuxingyu.ksplat",   size: 22655408, r: 0.82 },
       { name: "张唐组",   file: "models/zhangtang.ksplat",   size: 23255904, r: 0.66 },
       { name: "班级",     file: "models/banji.ksplat",       size: 55729068, r: 0.85 },
+      { name: "川西雪豹组", file: "models/chuanxixuebao.ksplat", size: 69542052, r: 0.62 },
     ];
     // ================================================================
 
@@ -520,10 +521,10 @@
     (function buildConstellation() {
       const NS = "http://www.w3.org/2000/svg";
       MODELS.forEach((m, i) => {
-        // 轨道半径按“等面积”分布（r² 均匀递增）：r = √(0.15² + (0.85²−0.15²)·i/7)。
+        // 轨道半径按“等面积”分布（r² 均匀递增）：r = √(0.15² + (0.85²−0.15²)·i/8)。
         // 圆内面积随半径平方增长，故内圈给大间距、外圈收窄 —— 修正“内圈过密、外圈过疏”，内圈步长已推到极限。
-        // 分母 7 对应 8 条轨道（i=0..7），外圈上限 0.85 确保最外层仍在画面内。
-        const r = Math.sqrt(0.15 * 0.15 + (0.85 * 0.85 - 0.15 * 0.15) * i / 7);
+        // 分母 8 对应 9 条轨道（i=0..8），外圈上限 0.85 确保最外层仍在画面内。
+        const r = Math.sqrt(0.15 * 0.15 + (0.85 * 0.85 - 0.15 * 0.15) * i / 8);
         const speedMul = 0.9 + (i % 4) * 0.08;             // 0.90/0.98/1.06/1.14，邻近行星略有快慢差
         const omega = (ORBIT_LINEAR * speedMul) / r;       // 角速度：线速度恒定 => 内外行星皆流畅
         const phase = i * GOLDEN;                          // 起始角，错落有致
