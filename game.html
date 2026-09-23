@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>文字冒险 · 班级回忆录</title>
+<style>
+  /* ================================================================
+     视觉风格：浅色 / 粉彩 / 低饱和，与本站首页、二级页统一。
+     想换经典暗色 galgame 风，替换 :root 这组变量即可。
+     ================================================================ */
+  :root {
+    --ink: #3a3a4a;
+    --ink-soft: #6a6a82;
+    --panel: rgba(255,255,255,0.86);
+    --panel-solid: #ffffff;
+    --panel-border: rgba(58,58,74,0.12);
+    --accent1: #ff9ad2;   /* 已通关 粉 */
+    --accent2: #9ec1ff;   /* 可进入 蓝 */
+    --name: #6a4a9a;
+    --shadow: 0 12px 40px rgba(80,60,140,0.18);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    overflow: hidden; background: #f6f8ff; color: var(--ink);
+  }
+
+  #sceneBg { position: fixed; inset: 0; z-index: 0; transition: background 0.9s ease; }
+  .orbs { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; filter: blur(60px) saturate(140%); opacity: .5; }
+  .orbs i { position: absolute; border-radius: 50%; }
+  .orbs i:nth-child(1){ width:60vmax;height:60vmax;left:-15vmax;top:-10vmax;background:radial-gradient(circle,#ffb0d0,transparent 67%);animation:drift1 22s ease-in-out infinite; }
+  .orbs i:nth-child(2){ width:55vmax;height:55vmax;right:-12vmax;top:8vmax;background:radial-gradient(circle,#aecbff,transparent 67%);animation:drift2 26s ease-in-out infinite; }
+  .orbs i:nth-child(3){ width:50vmax;height:50vmax;left:10vmax;bottom:-12vmax;background:radial-gradient(circle,#d4bcff,transparent 67%);animation:drift3 24s ease-in-out infinite; }
+  @keyframes drift1{0%,100%{transform:translate(0,0)}50%{transform:translate(8vmax,6vmax)}}
+  @keyframes drift2{0%,100%{transform:translate(0,0)}50%{transform:translate(-7vmax,9vmax)}}
+  @keyframes drift3{0%,100%{transform:translate(0,0)}50%{transform:translate(6vmax,-8vmax)}}
+  .veil { position: fixed; inset: 0; z-index: 1; background: radial-gradient(ellipse at center, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 60%); pointer-events: none; }
+
+  /* 顶栏 */
+  .topbar { position: relative; z-index: 6; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; }
+  .topbar .title { font-size: 16px; letter-spacing: 0.14em; color: var(--ink); }
+  .topbar-right { display: flex; gap: 10px; align-items: center; }
+  .pill { cursor: pointer; text-decoration: none; color: var(--ink); padding: 8px 15px; border-radius: 999px;
+    border: 1px solid var(--panel-border); background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: 13px; letter-spacing: .06em;
+    display: inline-flex; align-items: center; gap: 6px; transition: transform .25s, background .25s; }
+  .pill:hover { transform: translateY(-2px); background: rgba(255,255,255,0.85); }
+
+  /* ===== 剧情地图（主界面） ===== */
+  #mapScreen { position: fixed; inset: 0; z-index: 2; overflow: auto; padding: 86px 24px 60px; }
+  #mapInner { position: relative; margin: 0 auto; }
+  #mapEdges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
+  .edge { fill: none; }
+  .edge.trav { stroke: rgba(120,90,170,0.78); stroke-width: 2.6; }
+  .edge.untrav { stroke: rgba(120,110,160,0.30); stroke-width: 2; stroke-dasharray: 5 7; }
+  .edge-label { position: absolute; transform: translate(-50%,-50%); font-size: 11px; color: var(--ink-soft);
+    background: rgba(255,255,255,0.78); padding: 1px 8px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+    border: 1px solid var(--panel-border); }
+
+  .node { position: absolute; width: 158px; min-height: 66px; transform: translate(-50%,-50%);
+    border-radius: 16px; padding: 12px 14px; cursor: pointer; display: flex; flex-direction: column; gap: 4px;
+    background: var(--panel); border: 1.6px solid var(--panel-border); box-shadow: var(--shadow);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    text-align: center; align-items: center; justify-content: center; transition: transform .2s, box-shadow .2s, border-color .2s; }
+  .node:hover { transform: translate(-50%,-50%) translateY(-2px) scale(1.04); }
+  .node .nt { font-size: 14px; font-weight: 600; letter-spacing: .03em; line-height: 1.35; }
+  .node .badge { position: absolute; top: -9px; right: -9px; font-size: 12px; width: 22px; height: 22px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.14); border: 1px solid var(--panel-border); }
+  .node.done { border-color: var(--accent1); }
+  .node.done .nt { color: var(--name); }
+  .node.open { border-color: var(--accent2); box-shadow: 0 12px 40px rgba(120,170,255,0.30); }
+  .node.locked { background: rgba(232,232,242,0.66); color: #9a9ab0; cursor: not-allowed; border-color: rgba(0,0,0,.06); box-shadow: none; }
+  .node.locked .nt { color: #9a9ab0; }
+  .node.locked:hover { transform: translate(-50%,-50%); }
+
+  /* 图例 */
+  .legend { position: fixed; z-index: 6; left: 16px; bottom: 16px; display: flex; gap: 14px; flex-wrap: wrap;
+    background: rgba(255,255,255,0.7); border: 1px solid var(--panel-border); border-radius: 14px; padding: 8px 12px;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); font-size: 12px; color: var(--ink-soft); align-items: center; }
+  .legend b { font-weight: 600; color: var(--ink); }
+  .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 4px; vertical-align: -1px; margin-right: 4px; }
+
+  /* ===== 对话界面（点节点后覆盖显示） ===== */
+  .avatar { position: absolute; z-index: 3; left: 50%; bottom: 30%; transform: translateX(-50%);
+    width: clamp(120px, 26vw, 200px); aspect-ratio: 3/4; border-radius: 22px;
+    background: linear-gradient(160deg, rgba(255,255,255,0.5), rgba(255,255,255,0.18));
+    border: 1px solid rgba(255,255,255,0.7); box-shadow: var(--shadow);
+    display: flex; align-items: center; justify-content: center; font-size: clamp(40px,9vw,72px);
+    color: #b9a6e6; font-weight: 700; opacity: 0; transition: opacity .5s, transform .5s; backdrop-filter: blur(6px); }
+  .avatar.show { opacity: 1; }
+
+  .dialogue { position: absolute; z-index: 4; left: 50%; bottom: 22px; transform: translateX(-50%); display: none;
+    width: min(880px, 94vw); background: var(--panel); border: 1px solid var(--panel-border);
+    border-radius: 20px; padding: 18px 22px 20px; box-shadow: var(--shadow);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); cursor: pointer; }
+  .dialogue.show { display: block; }
+  .speaker { font-size: 15px; font-weight: 700; color: var(--name); letter-spacing: .06em; margin-bottom: 8px; min-height: 18px; }
+  .text { font-size: 17px; line-height: 1.85; color: var(--ink); min-height: 84px; white-space: pre-wrap; word-break: break-word; }
+  .cont { position: absolute; right: 18px; bottom: 12px; font-size: 14px; color: var(--ink-soft); opacity: 0; animation: blink 1.1s steps(2,start) infinite; }
+  .cont.show { opacity: .9; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .choices { position: absolute; z-index: 4; left: 50%; bottom: 200px; transform: translateX(-50%); display: none;
+    width: min(720px, 92vw); flex-direction: column; gap: 12px; }
+  .choices.show { display: flex; }
+  .choice { cursor: pointer; text-align: left; padding: 14px 18px; border-radius: 16px; font-size: 16px;
+    color: var(--ink); background: var(--panel); border: 1px solid var(--panel-border);
+    box-shadow: var(--shadow); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    transition: transform .2s, box-shadow .2s, background .2s; opacity: 0; transform: translateY(8px); }
+  .choice.in { opacity: 1; transform: translateY(0); }
+  .choice:hover { transform: translateY(-2px) scale(1.01); background: #fff;
+    box-shadow: 0 16px 44px rgba(255,150,210,0.28), 0 12px 36px rgba(140,170,255,0.22); }
+
+  /* 底栏工具 */
+  .toolbar { position: absolute; z-index: 7; right: 16px; bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; }
+  .tool { cursor: pointer; width: 42px; height: 42px; border-radius: 50%; border: 1px solid var(--panel-border);
+    background: rgba(255,255,255,0.6); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 6px 20px rgba(58,58,74,0.1); font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center;
+    transition: transform .25s, background .25s; }
+  .tool:hover { transform: translateY(-2px) scale(1.05); background: rgba(255,255,255,0.9); }
+  .tool.off { opacity: .45; }
+  .tool.hidden { display: none; }
+
+  .toast { position: fixed; z-index: 20; left: 50%; bottom: 80px; transform: translateX(-50%) translateY(10px);
+    background: rgba(40,36,60,0.9); color: #fff; padding: 9px 18px; border-radius: 999px; font-size: 13px; letter-spacing: .06em;
+    opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 560px) {
+    .topbar { padding: 12px 14px; }
+    .text { font-size: 16px; min-height: 76px; }
+    .choices { bottom: 188px; }
+    .toolbar { bottom: 12px; right: 12px; }
+    .tool { width: 38px; height: 38px; font-size: 16px; }
+    .legend { font-size: 11px; gap: 10px; }
+  }
+  @media (prefers-reduced-motion: reduce) { .orbs i, .cont { animation: none !important; } }
+</style>
+</head>
+<body>
+  <div id="sceneBg"></div>
+  <div class="orbs" aria-hidden="true"><i></i><i></i><i></i></div>
+  <div class="veil" aria-hidden="true"></div>
+
+  <div class="topbar">
+    <div class="title">✿ 文字冒险 · 剧情地图</div>
+    <div class="topbar-right">
+      <a class="pill" id="backLink" href="memory.html" target="_top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        返回
+      </a>
+    </div>
+  </div>
+
+  <!-- 剧情地图 -->
+  <div id="mapScreen">
+    <div id="mapInner">
+      <svg id="mapEdges"></svg>
+      <!-- 节点由 JS 注入 -->
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent1)"></span><b>已通关</b> ✓</span>
+    <span><span class="sw" style="background:var(--accent2)"></span><b>可进入</b></span>
+    <span><span class="sw" style="background:#e8e8f2"></span><b>未解锁</b> 🔒</span>
+    <span>连线：实线=走过</span>
+  </div>
+
+  <div class="avatar" id="avatar"></div>
+
+  <div class="dialogue" id="dialogue">
+    <div class="speaker" id="speaker"></div>
+    <div class="text" id="text"></div>
+    <div class="cont" id="cont">▼</div>
+  </div>
+
+  <div class="choices" id="choices"></div>
+
+  <div class="toolbar">
+    <button class="tool hidden" id="btnMap" title="返回地图">🗺️</button>
+    <button class="tool" id="btnSave" title="存档">💾</button>
+    <button class="tool" id="btnLoad" title="读档">📂</button>
+    <button class="tool" id="btnSpeed" title="文字速度">中</button>
+    <button class="tool" id="btnBgm" title="背景音乐">🔊</button>
+    <button class="tool" id="btnSfx" title="音效">🔔</button>
+    <button class="tool" id="btnReset" title="重置进度">↺</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+/* ================================================================
+   ★★★ 剧情在这里替换 ★★★
+   每个节点 = 地图上的一个节点（一段剧情）。
+   字段：
+     title   : 地图上显示的短名字（必填）
+     bg      : 背景键，对应下方 BG 渐变（可选）
+     lines   : 对话数组 [{speaker:'名字', text:'台词'}, ...]（可选，省略则读 text）
+     text    : 单行台词（无 lines 时使用）
+     branches: 分支选项 [{text:'选项文字', to:'目标节点id'}]（可选）
+               —— 节点的 branches 决定它向下连出哪些节点（即树的连线）
+               —— 不写 branches = 叶子/结局节点
+     endingTitle / endingText : 叶子节点显示的结局信息（可选）
+   把示例文字换成你的故事即可，地图会自动按 branches 排布成树。
+   ================================================================ */
+const BG = {
+  dawn:  'linear-gradient(160deg,#ffe3ef 0%,#e7ecff 55%,#dff6ff 100%)',
+  dusk:  'linear-gradient(160deg,#ffd9c2 0%,#f3d4ff 50%,#c9d6ff 100%)',
+  classroom: 'linear-gradient(160deg,#e8fff3 0%,#e3f0ff 55%,#fff4e8 100%)',
+  rooftop: 'linear-gradient(160deg,#cfe9ff 0%,#e9e1ff 50%,#ffe6f2 100%)',
+};
+
+const SCRIPT = {
+  start: {
+    title: '序章 · 放学', bg: 'classroom',
+    lines: [
+      { speaker: '', text: '放学的钟声刚响，走廊里还残留着粉笔灰的味道。' },
+      { speaker: '', text: '你收到一条消息：「天台见。」' },
+    ],
+    branches: [
+      { text: '走向天台', to: 'rooftop' },
+      { text: '先回教室', to: 'classroom' },
+    ]
+  },
+
+  rooftop: {
+    title: '天台', bg: 'rooftop',
+    lines: [ { speaker: '小满', text: '（她靠在栏杆上，回头看你）你来啦。今天……过得还好吗？' } ],
+    branches: [
+      { text: '「挺好的，想找人说说话」', to: 'warm' },
+      { text: '「还行，怎么突然叫我？」', to: 'cool' },
+    ]
+  },
+  classroom: {
+    title: '教室', bg: 'classroom',
+    lines: [ { speaker: '', text: '你回到空荡荡的教室，黑板上还留着今天的板书。' } ],
+    branches: [
+      { text: '翻看同学的留言本', to: 'note' },
+      { text: '趴下歇一会儿', to: 'nap' },
+    ]
+  },
+
+  warm: {
+    title: '心事', bg: 'rooftop',
+    lines: [ { speaker: '小满', text: '（她笑了）那就好。其实……有些话我憋了很久，一直没敢说。' } ],
+    branches: [
+      { text: '「好，我们一起。」', to: 'end_warm' },
+      { text: '「抱歉，我还没想好。」', to: 'end_solo' },
+    ]
+  },
+  cool: {
+    title: '云', bg: 'rooftop',
+    lines: [ { speaker: '小满', text: '（风把她的头发吹乱）……不过你好像总是很忙。也许有些风景，错过了就不再有了。' } ],
+    branches: [
+      { text: '「以后多留点时间给你。」', to: 'end_warm' },
+      { text: '「云天天都有，下次吧。」', to: 'end_miss' },
+    ]
+  },
+  note: {
+    title: '留言本', bg: 'classroom',
+    lines: [ { speaker: '', text: '翻开留言本，每一页都是熟悉又遥远的字迹。' } ],
+    branches: [
+      { text: '在最后一页写下你的名字', to: 'end_note' },
+      { text: '默默合上，什么也没写', to: 'end_quiet' },
+    ]
+  },
+  nap: {
+    title: '午后', bg: 'dawn',
+    lines: [ { speaker: '', text: '阳光晒得人发困，你把头埋进臂弯。' } ],
+    branches: [
+      { text: '梦见毕业那天', to: 'end_dream' },
+      { text: '被上课铃吵醒', to: 'end_wake' },
+    ]
+  },
+
+  end_warm: { title: '温暖结局', bg: 'dusk', endingTitle: '温暖结局', endingText: '你们决定一起走下去。',
+    lines: [ { speaker: '', text: '夕阳把两个人的影子拉得很长。\n有些勇气说出来，世界就温柔了一点。' } ] },
+  end_solo: { title: '独白结局', bg: 'rooftop', endingTitle: '独白结局', endingText: '你保有了自己的节奏，也留下了余味。',
+    lines: [ { speaker: '', text: '你婉拒了，却看见她眼里一闪而过的失落。\n有些话，只适合在那一刻说。' } ] },
+  end_miss: { title: '错过结局', bg: 'dawn', endingTitle: '错过结局', endingText: '有些风景，这次真的过去了。',
+    lines: [ { speaker: '', text: '云散了，天台只剩风。\n你低头回了消息，没有抬头看她一眼。' } ] },
+  end_note: { title: '留言结局', bg: 'classroom', endingTitle: '留言结局', endingText: '你的名字留在了大家的青春里。',
+    lines: [ { speaker: '', text: '你郑重写下名字，合上本子。\n很多年后，还会有人翻到这一页。' } ] },
+  end_quiet: { title: '安静结局', bg: 'classroom', endingTitle: '安静结局', endingText: '有些陪伴，不必言说。',
+    lines: [ { speaker: '', text: '你什么也没写，只是把本子轻轻放回原处。\n安静，也是一种回答。' } ] },
+  end_dream: { title: '梦境结局', bg: 'dawn', endingTitle: '梦境结局', endingText: '在梦里， everyone 都还在。',
+    lines: [ { speaker: '', text: '梦里的操场很亮，大家笑着朝你挥手。\n你舍不得睁开眼。' } ] },
+  end_wake: { title: '清醒结局', bg: 'classroom', endingTitle: '清醒结局', endingText: '铃声响起，回到此刻。',
+    lines: [ { speaker: '', text: '上课铃把你拽回现实。\n窗外的天，还是放学的颜色。' } ] },
+};
+
+/* ====================== 引擎（一般无需改动） ====================== */
+const SAVE_KEY = 'memory_galgame_save_v2';
+const $ = (id) => document.getElementById(id);
+const sceneBg = $('sceneBg'), avatar = $('avatar'), dialogue = $('dialogue'),
+      speakerEl = $('speaker'), textEl = $('text'), cont = $('cont'), choicesEl = $('choices'),
+      mapScreen = $('mapScreen'), mapInner = $('mapInner'), mapEdges = $('mapEdges'), toast = $('toast');
+
+let state = { node: 'start', flags: {} };
+let typing = false, typeTimer = null, fullText = '', lineQueue = [], currentId = null, mode = 'map';
+let textSpeed = 28; const SPEEDS = [45, 28, 14]; let speedIdx = 1;
+
+let visited = new Set();      // 已看过的节点
+let traversed = new Set();    // 走过的连线 "parent>child"
+
+/* ---------- 布局（按 branches 自动算树坐标，纵向） ---------- */
+const NODE_W = 158, NODE_H = 66, COL_W = 210, ROW_H = 150, MARGIN = 48;
+const POS = {}; // id -> {x, y} 中心坐标
+function computeLayout() {
+  const children = {}, hasParent = {};
+  for (const id in SCRIPT) {
+    children[id] = (SCRIPT[id].branches || []).map(b => b.to);
+    children[id].forEach(t => hasParent[t] = true);
+  }
+  const roots = Object.keys(SCRIPT).filter(id => !hasParent[id]);
+  const col = {}, depth = {}, laid = {};
+  let counter = 0;
+  function dfs(id, d) {
+    if (laid[id]) return; laid[id] = true;
+    depth[id] = d;
+    const kids = children[id];
+    if (!kids.length) { col[id] = counter++; }
+    else { kids.forEach(k => dfs(k, d + 1)); col[id] = (col[kids[0]] + col[kids[kids.length - 1]]) / 2; }
+  }
+  roots.forEach(r => dfs(r, 0));
+  // 兜底：孤儿节点放第 0 层
+  Object.keys(SCRIPT).forEach(id => { if (depth[id] === undefined) { depth[id] = 0; col[id] = counter++; } });
+  let maxCol = 0, maxDepth = 0;
+  for (const id in SCRIPT) { maxCol = Math.max(maxCol, col[id]); maxDepth = Math.max(maxDepth, depth[id]); }
+  for (const id in SCRIPT) {
+    POS[id] = { x: MARGIN + col[id] * COL_W + NODE_W / 2, y: MARGIN + depth[id] * ROW_H + NODE_H / 2 };
+  }
+  mapInner.style.width = (MARGIN * 2 + maxCol * COL_W + NODE_W) + 'px';
+  mapInner.style.height = (MARGIN * 2 + maxDepth * ROW_H + NODE_H) + 'px';
+  mapEdges.setAttribute('width', mapInner.style.width);
+  mapEdges.setAttribute('height', mapInner.style.height);
+}
+
+/* ---------- 节点状态 ---------- */
+function isReachable(id) {
+  // 根节点总是可进入；否则存在某个父节点已访问即可进入
+  let anyParent = false;
+  for (const p in SCRIPT) {
+    if ((SCRIPT[p].branches || []).some(b => b.to === id)) {
+      anyParent = true;
+      if (visited.has(p)) return true;
+    }
+  }
+  return !anyParent; // 无父 = 根
+}
+function nodeState(id) {
+  if (visited.has(id)) return 'done';
+  if (isReachable(id)) return 'open';
+  return 'locked';
+}
+
+/* ---------- 渲染地图 ---------- */
+function renderMap() {
+  // 连线
+  let svg = '';
+  for (const id in SCRIPT) {
+    const p = POS[id];
+    (SCRIPT[id].branches || []).forEach(b => {
+      const c = POS[b.to]; if (!c) return;
+      const x1 = p.x, y1 = p.y + NODE_H / 2, x2 = c.x, y2 = c.y - NODE_H / 2;
+      const dy = ROW_H * 0.42;
+      const cls = traversed.has(id + '>' + b.to) ? 'trav' : 'untrav';
+      svg += `<path class="edge ${cls}" d="M ${x1} ${y1} C ${x1} ${y1 + dy}, ${x2} ${y2 - dy}, ${x2} ${y2}"/>`;
+    });
+  }
+  mapEdges.innerHTML = svg;
+
+  // 节点 + 连线标签
+  // 先清掉旧节点/标签
+  [...mapInner.querySelectorAll('.node, .edge-label')].forEach(el => el.remove());
+  for (const id in SCRIPT) {
+    const p = POS[id]; const n = SCRIPT[id]; const st = nodeState(id);
+    const node = document.createElement('div');
+    node.className = 'node ' + st;
+    node.style.left = p.x + 'px'; node.style.top = p.y + 'px';
+    let badge = '';
+    if (st === 'done') badge = '<span class="badge">✓</span>';
+    else if (st === 'locked') badge = '<span class="badge">🔒</span>';
+    node.innerHTML = `<div class="nt">${n.title || id}</div>${badge}`;
+    node.addEventListener('click', () => onNodeClick(id));
+    mapInner.appendChild(node);
+
+    // 连线标签
+    (n.branches || []).forEach(b => {
+      const c = POS[b.to]; if (!c) return;
+      const x1 = p.x, y1 = p.y + NODE_H / 2, x2 = c.x, y2 = c.y - NODE_H / 2;
+      const lab = document.createElement('div');
+      lab.className = 'edge-label';
+      lab.style.left = ((x1 + x2) / 2) + 'px';
+      lab.style.top = ((y1 + y2) / 2) + 'px';
+      lab.textContent = b.text;
+      mapInner.appendChild(lab);
+    });
+  }
+}
+
+function onNodeClick(id) {
+  const st = nodeState(id);
+  if (st === 'locked') { toastMsg('尚未解锁，先打通通往它的剧情'); return; }
+  ensureAudio(); if (bgmOn) startBGM();
+  enterPlay(id);
+}
+
+/* ---------- 音频（WebAudio 生成；可替换为真实音频文件） ---------- */
+let actx = null, bgmNodes = [], bgmMaster = null, sfxOn = true, bgmOn = true;
+function ensureAudio() {
+  if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; } }
+  if (actx.state === 'suspended') actx.resume();
+}
+function blip() {
+  if (!sfxOn || !actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = 'triangle'; o.frequency.value = 540;
+  g.gain.setValueAtTime(0.0001, actx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.07, actx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + 0.12);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.13);
+}
+function startBGM() {
+  ensureAudio(); if (!actx || (bgmOn && bgmNodes.length)) return; bgmOn = true;
+  bgmMaster = actx.createGain(); bgmMaster.gain.value = 0.0001; bgmMaster.connect(actx.destination);
+  bgmMaster.gain.linearRampToValueAtTime(0.5, actx.currentTime + 2.2);
+  [261.63, 329.63, 392.00, 523.25].forEach((f) => {
+    const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+    const g = actx.createGain(); g.gain.value = 0.06; o.connect(g).connect(bgmMaster); o.start();
+    bgmNodes.push({ o, g });
+  });
+  const lfo = actx.createOscillator(); lfo.frequency.value = 0.07;
+  const lg = actx.createGain(); lg.gain.value = 0.16; lfo.connect(lg).connect(bgmMaster.gain); lfo.start();
+  bgmNodes.push({ o: lfo, g: lg });
+}
+function stopBGM() {
+  if (bgmMaster) { try { bgmMaster.gain.linearRampToValueAtTime(0.0001, actx.currentTime + 0.6); } catch (e) {} }
+  bgmNodes.forEach(({ o }) => { try { o.stop(actx.currentTime + 0.7); } catch (e) {} });
+  bgmNodes = []; bgmOn = false; bgmMaster = null;
+}
+function toggleBgm() { if (bgmOn) { stopBGM(); } else { startBGM(); } updateToolIcons(); }
+function toggleSfx() { sfxOn = !sfxOn; updateToolIcons(); }
+function updateToolIcons() {
+  $('btnBgm').textContent = bgmOn ? '🔊' : '🔇';
+  $('btnBgm').classList.toggle('off', !bgmOn);
+  $('btnSfx').textContent = sfxOn ? '🔔' : '🔕';
+  $('btnSfx').classList.toggle('off', !sfxOn);
+}
+
+/* ---------- 打字机 ---------- */
+function typeText(t, done) {
+  fullText = t; typing = true;
+  textEl.textContent = ''; cont.classList.remove('show');
+  let i = 0;
+  clearInterval(typeTimer);
+  typeTimer = setInterval(() => {
+    i++; textEl.textContent = fullText.slice(0, i);
+    if (i >= fullText.length) { clearInterval(typeTimer); typing = false; if (done) done(); }
+  }, textSpeed);
+}
+function finishTyping() { clearInterval(typeTimer); textEl.textContent = fullText; typing = false; }
+
+/* ---------- 进入 / 播放节点 ---------- */
+function enterPlay(id) {
+  mode = 'play';
+  visited.add(id); persist();
+  mapScreen.style.display = 'none';
+  dialogue.classList.add('show');
+  choicesEl.classList.remove('show');
+  $('btnMap').classList.remove('hidden');
+  currentId = id;
+  const n = SCRIPT[id];
+  if (n.bg) sceneBg.style.background = BG[n.bg];
+  lineQueue = (n.lines && n.lines.length) ? n.lines.slice() : [{ speaker: n.speaker || '', text: n.text || '' }];
+  stepLine();
+}
+function stepLine() {
+  if (lineQueue.length === 0) { finishNode(); return; }
+  const ln = lineQueue.shift();
+  speakerEl.textContent = ln.speaker || '';
+  setAvatar(ln.speaker || '');
+  typeText(ln.text, () => {
+    if (lineQueue.length > 0) cont.classList.add('show');
+    else finishNode();
+  });
+}
+function finishNode() {
+  const n = SCRIPT[currentId];
+  choicesEl.innerHTML = '';
+  if (n.branches && n.branches.length) {
+    renderBranches(n.branches);
+  } else {
+    // 叶子 / 结局
+    if (n.endingTitle) toastMsg('— ' + n.endingTitle + ' —');
+    speakerEl.textContent = n.endingTitle ? '— 结局 —' : '';
+    renderEndingReturn();
+  }
+}
+function renderBranches(list) {
+  choicesEl.classList.add('show');
+  list.forEach((b, idx) => {
+    const el = document.createElement('button');
+    el.className = 'choice';
+    el.innerHTML = `<span style="opacity:.5;margin-right:8px">${idx + 1}.</span>${b.text}`;
+    el.addEventListener('click', () => {
+      blip();
+      traversed.add(currentId + '>' + b.to); persist();
+      enterPlay(b.to);
+    });
+    choicesEl.appendChild(el);
+    requestAnimationFrame(() => setTimeout(() => el.classList.add('in'), 40 + idx * 70));
+  });
+}
+function renderEndingReturn() {
+  choicesEl.classList.add('show');
+  const el = document.createElement('button');
+  el.className = 'choice';
+  el.innerHTML = '🗺️ 返回剧情地图';
+  el.addEventListener('click', () => { blip(); returnToMap(); });
+  choicesEl.appendChild(el);
+  requestAnimationFrame(() => setTimeout(() => el.classList.add('in'), 60));
+}
+function returnToMap() {
+  mode = 'map';
+  dialogue.classList.remove('show');
+  choicesEl.classList.remove('show');
+  avatar.classList.remove('show');
+  $('btnMap').classList.add('hidden');
+  mapScreen.style.display = 'block';
+  renderMap();
+}
+
+function setAvatar(name) {
+  if (!name) { avatar.classList.remove('show'); return; }
+  avatar.textContent = name.slice(0, 1);
+  avatar.classList.add('show');
+}
+
+/* ---------- 存档 / 读档 / 重置 ---------- */
+function persist() {
+  localStorage.setItem(SAVE_KEY, JSON.stringify({
+    visited: [...visited], traversed: [...traversed], flags: state.flags,
+    speedIdx, bgmOn, sfxOn
+  }));
+}
+function restore() {
+  const s = localStorage.getItem(SAVE_KEY); if (!s) return;
+  try {
+    const o = JSON.parse(s);
+    visited = new Set(o.visited || []);
+    traversed = new Set(o.traversed || []);
+    state.flags = o.flags || {};
+    if (typeof o.speedIdx === 'number') { speedIdx = o.speedIdx; textSpeed = SPEEDS[speedIdx]; }
+    if (typeof o.bgmOn === 'boolean') bgmOn = o.bgmOn;
+    if (typeof o.sfxOn === 'boolean') sfxOn = o.sfxOn;
+  } catch (e) {}
+}
+function save() { persist(); toastMsg('已存档'); }
+function load() {
+  const s = localStorage.getItem(SAVE_KEY);
+  if (!s) { toastMsg('没有存档'); return; }
+  restore(); renderMap(); toastMsg('已读档');
+}
+function resetProgress() {
+  if (!confirm('确定重置全部剧情进度？已解锁的节点会重新锁上。')) return;
+  visited = new Set(); traversed = new Set(); state = { node: 'start', flags: {} };
+  localStorage.removeItem(SAVE_KEY); renderMap(); toastMsg('进度已重置');
+}
+
+let toastTimer = null;
+function toastMsg(msg) {
+  toast.textContent = msg; toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 1500);
+}
+
+/* ---------- 交互绑定 ---------- */
+dialogue.addEventListener('click', () => {
+  if (mode !== 'play') return;
+  if (typing) { finishTyping(); return; }
+  if (lineQueue.length > 0) { stepLine(); return; }
+});
+document.addEventListener('keydown', (e) => {
+  if (mode !== 'play') return;
+  if (e.key === ' ' || e.key === 'Enter') {
+    e.preventDefault();
+    if (typing) { finishTyping(); return; }
+    if (lineQueue.length > 0) { stepLine(); return; }
+  } else if (/^[1-9]$/.test(e.key)) {
+    const n = SCRIPT[currentId];
+    if (n.branches && n.branches[+e.key - 1]) document.querySelectorAll('.choice')[+e.key - 1]?.click();
+  }
+});
+
+$('btnMap').addEventListener('click', returnToMap);
+$('btnSave').addEventListener('click', save);
+$('btnLoad').addEventListener('click', load);
+$('btnReset').addEventListener('click', resetProgress);
+$('btnBgm').addEventListener('click', toggleBgm);
+$('btnSfx').addEventListener('click', toggleSfx);
+$('btnSpeed').addEventListener('click', () => {
+  speedIdx = (speedIdx + 1) % SPEEDS.length; textSpeed = SPEEDS[speedIdx];
+  $('btnSpeed').textContent = ['慢', '中', '快'][speedIdx];
+});
+
+/* ---------- 启动 ---------- */
+computeLayout();
+restore();
+renderMap();
+$('btnSpeed').textContent = ['慢', '中', '快'][speedIdx];
+updateToolIcons();
+</script>
+</body>
+</html>
