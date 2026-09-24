@@ -64,14 +64,46 @@
   .empty { text-align: center; color: #9a9ab0; font-size: 15px; line-height: 2; padding: 60px 20px; }
   .empty .big { font-size: 40px; }
 
-  /* ===== 详情 ===== */
+  /* ===== 详情（时间轴） ===== */
   .detail { position: relative; z-index: 2; max-width: 720px; margin: 0 auto; padding: 8px 18px 60px; }
   .detail.hidden, .list.hidden, .modal.hidden { display: none !important; }
-  .gallery { display: flex; flex-direction: column; gap: 14px; }
-  .photo { background: rgba(255,255,255,0.72); border-radius: 18px; overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(58,58,74,0.12); }
-  .photo img { width: 100%; display: block; }
-  .photo .cap { padding: 9px 14px; font-size: 12px; color: #a0a0b8; border-top: 1px solid rgba(58,58,74,0.06); }
+  .dname { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: #3a3a4a; margin: 4px 0 2px; }
+  .dtime { font-size: 12px; color: #a0a0b8; margin-bottom: 8px; }
+  .addphoto { margin-top: 4px; margin-bottom: 22px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+  /* 时间轴主体 */
+  .timeline { position: relative; padding-left: 30px; }
+  .timeline::before { content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px;
+    background: linear-gradient(180deg, rgba(255,154,210,0.55), rgba(158,193,255,0.55)); border-radius: 2px; }
+  .tnode { position: relative; margin-bottom: 22px; }
+  .tdot { position: absolute; left: -30px; top: 4px; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; border: 2px solid rgba(158,193,255,0.9); box-shadow: 0 0 0 4px rgba(158,193,255,0.14);
+    display: flex; align-items: center; justify-content: center; }
+  .tdot::after { content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg, #ff9ad2, #9ec1ff);
+    box-shadow: 0 0 10px 2px rgba(255,154,210,0.55); animation: glow 2.4s ease-in-out infinite; }
+  @keyframes glow { 0%,100% { opacity: .75; transform: scale(1); } 50% { opacity: 1; transform: scale(1.18); } }
+  .tcard { background: rgba(255,255,255,0.72); border-radius: 18px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(58,58,74,0.12);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform .3s, box-shadow .3s; }
+  .tcard:hover { transform: translateY(-3px); box-shadow: 0 16px 42px rgba(255,150,200,0.22), 0 12px 36px rgba(140,170,255,0.18); }
+  .tdate { padding: 12px 16px 0; font-size: 12px; color: #a0a0b8; letter-spacing: 0.04em; }
+  .ttitle { padding: 4px 16px 0; font-size: 16px; font-weight: 700; color: #3a3a4a; letter-spacing: 0.04em; }
+  .tbody { padding: 8px 16px 0; font-size: 14px; color: #55556a; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+  .tphotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; padding: 12px 16px 16px; }
+  .tphotos img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; cursor: zoom-in;
+    background: linear-gradient(135deg, #ffe1f0, #ddeaff); transition: transform .25s; }
+  .tphotos img:hover { transform: scale(1.03); }
+  .tmeta { padding: 0 16px 14px; font-size: 11px; color: #b0b0c4; }
+  .tempty { padding: 40px 10px 30px; text-align: center; color: #9a9ab0; font-size: 14px; line-height: 2; }
+
+  /* 图片放大查看 */
+  .lightbox { position: fixed; inset: 0; z-index: 60; background: rgba(20,16,34,0.88);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
+  .lightbox.hidden { display: none !important; }
+  .lightbox img { max-width: 94vw; max-height: 92vh; border-radius: 14px; box-shadow: 0 24px 70px rgba(0,0,0,0.5); }
+
   .story-box { background: rgba(255,255,255,0.72); border-radius: 18px; padding: 16px 18px;
     border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 10px 30px rgba(58,58,74,0.12); margin-top: 18px; }
   .story-box h3 { font-size: 15px; letter-spacing: 0.06em; color: #5a4a8a; margin-bottom: 10px; }
@@ -80,9 +112,6 @@
     background: #fbfbff; outline: none; transition: border-color .2s, box-shadow .2s; }
   .story-box textarea:focus { border-color: rgba(158,193,255,0.9); box-shadow: 0 0 0 3px rgba(158,193,255,0.18); }
   .row2 { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
-  .addphoto { margin-top: 18px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .dname { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: #3a3a4a; margin: 4px 0 2px; }
-  .dtime { font-size: 12px; color: #a0a0b8; margin-bottom: 16px; }
 
   /* ===== 弹窗 ===== */
   .modal { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center;
@@ -92,9 +121,9 @@
   .modal-card h3 { font-size: 17px; letter-spacing: 0.08em; color: #3a3a4a; margin-bottom: 16px; }
   .field { margin-bottom: 14px; }
   .field label { display: block; font-size: 13px; color: #5a4a8a; margin-bottom: 6px; letter-spacing: 0.04em; }
-  .field input[type=text], .field textarea { width: 100%; font-family: inherit; font-size: 14px; color: #3a3a4a;
+  .field input[type=text], .field input[type=date], .field textarea { width: 100%; font-family: inherit; font-size: 14px; color: #3a3a4a;
     border: 1px solid rgba(58,58,74,0.16); border-radius: 12px; padding: 10px 12px; background: #fbfbff; outline: none; }
-  .field input[type=text]:focus, .field textarea:focus { border-color: rgba(158,193,255,0.9); box-shadow: 0 0 0 3px rgba(158,193,255,0.18); }
+  .field input[type=text]:focus, .field input[type=date]:focus, .field textarea:focus { border-color: rgba(158,193,255,0.9); box-shadow: 0 0 0 3px rgba(158,193,255,0.18); }
   .field textarea { resize: vertical; min-height: 90px; }
   .filepick { font-size: 13px; color: #6a6a82; }
   .filepick input[type=file] { margin-top: 6px; font-size: 13px; }
@@ -129,25 +158,49 @@
     <div class="grid" id="grid"></div>
   </div>
 
-  <!-- 详情 -->
+  <!-- 详情：故事时间轴 -->
   <div class="detail hidden" id="detailView">
     <button class="back" id="backToList" style="margin-bottom:14px; display:inline-block;">← 返回列表</button>
     <div class="dname" id="dName"></div>
     <div class="dtime" id="dTime"></div>
-    <div class="gallery" id="gallery"></div>
     <div class="addphoto">
-      <label class="btn" id="addPhotoBtnLabel" for="addPhotoInput">＋ 追加照片</label>
-      <input id="addPhotoInput" type="file" accept="image/*" multiple style="display:none" />
+      <button class="btn primary" id="newEntryBtn">＋ 写一个故事</button>
     </div>
-    <div class="story-box">
-      <h3>📖 他的故事</h3>
-      <textarea id="storyEdit" placeholder="写下来关于这个人的故事…（保存后所有人可见）"></textarea>
-      <div class="row2">
-        <button class="btn primary" id="saveStory">保存故事</button>
-        <span class="sub" id="storySaved" style="margin:0;"></span>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <!-- 新建故事弹窗 -->
+  <div class="modal hidden" id="entryModal">
+    <div class="modal-card">
+      <h3>写一个故事</h3>
+      <div class="field">
+        <label>故事标题（显示在时间轴亮点旁）</label>
+        <input type="text" id="entryTitle" maxlength="50" placeholder="例如：运动会上的三千米" />
+      </div>
+      <div class="field">
+        <label>故事发生的时间（可不填，默认为今天）</label>
+        <input type="date" id="entryDate" />
+      </div>
+      <div class="field">
+        <label>故事内容</label>
+        <textarea id="entryBody" placeholder="写下这段回忆…（可留空只放照片）"></textarea>
+      </div>
+      <div class="field">
+        <label>照片（可多选，可只传照片不写文字）</label>
+        <div class="filepick">
+          <input type="file" id="entryPhotos" accept="image/*" multiple />
+        </div>
+        <div class="previews" id="entryPreviews"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="cancelEntry">取消</button>
+        <button class="btn primary" id="confirmEntry">发布</button>
       </div>
     </div>
   </div>
+
+  <!-- 图片放大查看 -->
+  <div class="lightbox hidden" id="lightbox"><img id="lightboxImg" alt="照片查看" /></div>
 
   <!-- 新建人物弹窗 -->
   <div class="modal hidden" id="modal">
@@ -166,7 +219,7 @@
       </div>
       <div class="field">
         <label>写点他的故事</label>
-        <textarea id="newStory" placeholder="关于这个人的回忆…（可留空，之后补充）"></textarea>
+        <textarea id="newStory" placeholder="关于这个人的第一段介绍…（可留空，之后用「写一个故事」慢慢补充）"></textarea>
       </div>
       <div class="modal-actions">
         <button class="btn" id="cancelNew">取消</button>
@@ -185,6 +238,7 @@
   const SB_URL = "https://clgkifcfjesvgmsvexkm.supabase.co";
   const SB_KEY = "sb_publishable__hFsWHorCWwJrayab_9hzA_xD1W-4TP";
   const TABLE = "story_people";
+  const ETABLE = "story_entries";
   const BUCKET = "story-photos";
   const AUTH_HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
 
@@ -229,15 +283,47 @@
     });
     if (!r.ok && r.status !== 204) throw new Error("update failed: " + r.status);
   }
+  // ====== 故事条目 API（story_entries 表）======
+  async function entryList(personId) {
+    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}?person_id=eq.${encodeURIComponent(personId)}&select=*&order=happened_at.desc&limit=1000`, { headers: AUTH_HEADERS });
+    if (!r.ok) throw new Error("entry list failed: " + r.status);
+    return r.json();
+  }
+  async function entryCountAll() {
+    // 每个人物条目数 + 最新故事时间 + 最新故事标题（用于列表卡片），一次拉全表在本地聚合（数据量级为班级规模，完全够用）
+    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}?select=person_id,title,happened_at,created_at&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
+    if (!r.ok) throw new Error("entry agg failed: " + r.status);
+    const rows = await r.json();
+    const map = {};
+    for (const e of rows) {
+      const m = map[e.person_id] || (map[e.person_id] = { count: 0, latest: 0, latestTitle: "" });
+      m.count++;
+      if ((e.happened_at || 0) > m.latest) { m.latest = e.happened_at || 0; m.latestTitle = e.title || ""; }
+      else if ((e.happened_at || 0) === m.latest && !m.latestTitle) m.latestTitle = e.title || "";
+    }
+    return map;
+  }
+  async function entryInsert(row) {
+    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}`, {
+      method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(row),
+    });
+    if (!r.ok && r.status !== 201) throw new Error("entry insert failed: " + r.status);
+  }
+
   // 照片存 Storage：路径 personId/photoId.jpg；公开桶 => 直接拼公开 URL，无需签名
   function photoUrl(personId, photoId) {
     return `${SB_URL}/storage/v1/object/public/${BUCKET}/${personId}/${photoId}.jpg`;
   }
-  // 列出某人全部照片 id（Storage list API，按上传时间升序）——照片清单以 Storage 目录为准，数据库不冗余
-  async function listPhotos(personId) {
+  // 故事照片在 entry_photo 子目录
+  function entryPhotoUrl(personId, photoId) {
+    return `${SB_URL}/storage/v1/object/public/${BUCKET}/${personId}/entry_photo/${photoId}.jpg`;
+  }
+  // 列出某故事下的照片 id（路径 personId/entry_photo/，按上传时间升序）
+  async function listEntryPhotos(personId) {
     const r = await fetch(`${SB_URL}/storage/v1/object/list/${BUCKET}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json" },
-      body: JSON.stringify({ prefix: personId + "/", limit: 1000, sortBy: { column: "created_at", order: "asc" } }),
+      body: JSON.stringify({ prefix: personId + "/entry_photo/", limit: 1000, sortBy: { column: "created_at", order: "asc" } }),
     });
     if (!r.ok) throw new Error("photo list failed: " + r.status);
     const arr = await r.json();
@@ -245,10 +331,23 @@
       .filter(o => o.name && /\.jpe?g$/i.test(o.name))
       .map(o => o.name.replace(/\.jpe?g$/i, ""));
   }
-  async function uploadPhoto(personId, photoId, file) {
+  // 人物头像缩略图（新建人物时传的），路径 personId/photoId.jpg（根目录）
+  async function listPhotos(personId) {
+    const r = await fetch(`${SB_URL}/storage/v1/object/list/${BUCKET}`, {
+      method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: personId + "/", limit: 100, delimiter: "/", sortBy: { column: "created_at", order: "asc" } }),
+    });
+    if (!r.ok) throw new Error("photo list failed: " + r.status);
+    const arr = await r.json();
+    return (arr || [])
+      .filter(o => o.name && /\.jpe?g$/i.test(o.name))
+      .map(o => o.name.replace(/\.jpe?g$/i, ""));
+  }
+  async function uploadPhoto(personId, photoId, file, subfolder) {
     // 统一转 JPEG 压缩，控制单张体积（最长边 1600px，质量 0.82）
     const blob = await compressImage(file, 1600, 0.82);
-    const r = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${personId}/${photoId}.jpg`, {
+    const path = subfolder ? `${personId}/${subfolder}/${photoId}.jpg` : `${personId}/${photoId}.jpg`;
+    const r = await fetch(`${SB_URL}/storage/v1/object/${BUCKET}/${path}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "image/jpeg" },
       body: blob,
     });
@@ -284,18 +383,30 @@
   const grid = document.getElementById("grid");
   const listView = document.getElementById("listView");
   const detailView = document.getElementById("detailView");
+  const timelineEl = document.getElementById("timeline");
+  const lightbox = document.getElementById("lightbox");
+  const lightboxImg = document.getElementById("lightboxImg");
   let currentId = null;
   function setBusy(on, text) {
     const sub = document.querySelector("#listView .sub");
     if (sub && on) sub.textContent = text || "⏳ 云端加载中…";
     if (sub && !on) sub.textContent = "记录每一个人的名字、照片与故事 · ☁️ 云端共享，所有人可见";
   }
+  // 日期格式化：把当天 00:00 的本地毫秒值或日期串转成「YYYY年M月D日」
+  const fmtDay = (v) => {
+    if (!v) return "";
+    const d = (typeof v === "string") ? new Date(v + "T00:00:00") : new Date(Number(v));
+    if (isNaN(d)) return "";
+    return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  };
+  // date input 值(YYYY-MM-DD) -> 当天本地 00:00 毫秒
+  const dayToTs = (s) => { const d = new Date(s + "T00:00:00"); return isNaN(d) ? Date.now() : d.getTime(); };
 
   // ====== 列表视图 ======
   async function renderList() {
     setBusy(true);
-    let people;
-    try { people = await apiList(); }
+    let people, emap;
+    try { [people, emap] = await Promise.all([apiList(), entryCountAll()]); }
     catch (e) {
       setBusy(false);
       grid.innerHTML = `<div class="empty" style="grid-column:1/-1;">⚠️ 云端连接失败，稍后刷新重试。<br><span style="font-size:12px;">${escapeHtml(e.message)}</span></div>`;
@@ -307,9 +418,10 @@
       return;
     }
     grid.innerHTML = people.map(p => {
-      const story = escapeHtml(p.story || "（还没有写故事）");
-      // 列表页缩略图惰性解析：先占位，再从 Storage 目录取首图 id
-      const cnt = p.photo_count ? ` · ${p.photo_count} 张照片` : "";
+      const agg = emap[p.id];
+      const cnt = agg ? ` · ${agg.count} 个故事` : "";
+      const intro = escapeHtml(p.story || (agg && agg.latestTitle ? `最新故事：${agg.latestTitle}` : "（还没有写故事）"));
+      const lastT = agg && agg.latest ? `最近的故事：${fmtDay(agg.latest)}` : `更新于 ${fmt(p.updated_at)}`;
       const thumb = p.photo_count
         ? `<img class="thumb" loading="lazy" data-person="${p.id}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'ph-placeholder\\'>🙂</div>'">`
         : `<div class="ph-placeholder">🙂</div>`;
@@ -317,8 +429,8 @@
         ${thumb}
         <div class="meta">
           <div class="pname">${escapeHtml(p.name)}</div>
-          <div class="pstory">${story}</div>
-          <div class="ptime">更新于 ${fmt(p.updated_at)}${cnt}</div>
+          <div class="pstory">${intro}</div>
+          <div class="ptime">${lastT}${cnt}</div>
         </div>
       </div>`;
     }).join("");
@@ -331,11 +443,11 @@
     grid.querySelectorAll(".person").forEach(el => el.addEventListener("click", () => openDetail(el.dataset.id)));
   }
 
-  // ====== 详情视图 ======
+  // ====== 详情视图：故事时间轴 ======
   async function openDetail(id) {
     setBusy(true);
-    let p;
-    try { p = await apiGet(id); }
+    let p, entries;
+    try { [p, entries] = await Promise.all([apiGet(id), entryList(id)]); }
     catch (e) { setBusy(false); toast("加载失败：" + e.message); return; }
     setBusy(false);
     if (!p) { toast("未找到该人物"); return; }
@@ -343,27 +455,59 @@
     listView.classList.add("hidden");
     detailView.classList.remove("hidden");
     document.getElementById("dName").textContent = p.name;
-    document.getElementById("dTime").textContent =
-      `创建于 ${fmt(p.created_at)} · 更新于 ${fmt(p.updated_at)}`;
-    const gallery = document.getElementById("gallery");
-    const count = p.photo_count || 0;
-    // 照片清单实时从 Storage 目录列出（以 Storage 为准）
-    let ids = [];
-    try { ids = await listPhotos(id); } catch (e) { ids = []; }
-    if (!ids.length) {
-      gallery.innerHTML = `<div class="empty" style="padding:30px;">还没有上传照片，点下方「＋ 追加照片」。</div>`;
-    } else {
-      gallery.innerHTML = ids.map((phid, i) => `
-        <div class="photo">
-          <img loading="lazy" src="${photoUrl(p.id, phid)}" alt="照片 ${i + 1}"
-               onerror="this.parentElement.querySelector('.cap').textContent='这张照片加载失败'">
-          <div class="cap">照片 ${i + 1} / ${ids.length}</div>
-        </div>`).join("");
-    }
-    document.getElementById("storyEdit").value = p.story || "";
-    document.getElementById("storySaved").textContent = "";
+    document.getElementById("dTime").textContent = entries.length
+      ? `${entries.length} 个故事 · 由同学们共同记录`
+      : "还没有故事，点上方「＋ 写一个故事」开始";
+    renderTimeline(id, entries);
     window.scrollTo(0, 0);
   }
+
+  function renderTimeline(personId, entries) {
+    if (!entries.length) {
+      timelineEl.innerHTML = `<div class="tempty">🌱 时间轴还是空的<br>每写下一个故事，这里就会亮起一颗星</div>`;
+      return;
+    }
+    // 后端已按 happened_at.desc 排序；同日多条按创建时间稳定排列
+    timelineEl.innerHTML = entries.map(e => {
+      const title = escapeHtml(e.title || "（无标题）");
+      const body = e.body ? escapeHtml(e.body) : "";
+      const day = fmtDay(e.happened_at);
+      const cnt = e.photo_count || 0;
+      const photosHtml = cnt
+        ? `<div class="tphotos" data-person="${personId}">${Array.from({ length: cnt }, (_, i) => `<img loading="lazy" data-idx="${i}" alt="故事照片 ${i + 1}">`).join("")}</div>`
+        : "";
+      return `<div class="tnode">
+        <div class="tdot"></div>
+        <div class="tcard">
+          <div class="tdate">✦ ${day}</div>
+          <div class="ttitle">${title}</div>
+          ${body ? `<div class="tbody">${body}</div>` : ""}
+          ${photosHtml}
+          <div class="tmeta">发布于 ${fmt(e.created_at)} · ☁️ 所有人可见</div>
+        </div>
+      </div>`;
+    }).join("");
+    // 惰性填充每条故事的照片 URL（以 Storage 目录为准）
+    timelineEl.querySelectorAll(".tphotos").forEach(ph => {
+      const pid = ph.dataset.person;
+      listEntryPhotos(pid).then(ids => {
+        ph.querySelectorAll("img[data-idx]").forEach(img => {
+          const i = Number(img.dataset.idx);
+          if (ids[i]) img.src = entryPhotoUrl(pid, ids[i]);
+          else img.style.display = "none";
+        });
+      }).catch(() => { ph.style.display = "none"; });
+    });
+    // 点击放大
+    timelineEl.querySelectorAll(".tphotos img").forEach(img => {
+      img.addEventListener("click", () => {
+        if (!img.src) return;
+        lightboxImg.src = img.src;
+        lightbox.classList.remove("hidden");
+      });
+    });
+  }
+  lightbox.addEventListener("click", () => { lightbox.classList.add("hidden"); lightboxImg.src = ""; });
   function backToList() {
     detailView.classList.add("hidden");
     listView.classList.remove("hidden");
@@ -372,50 +516,69 @@
   }
   document.getElementById("backToList").addEventListener("click", backToList);
 
-  document.getElementById("saveStory").addEventListener("click", async () => {
-    if (!currentId) return;
-    const btn = document.getElementById("saveStory");
-    btn.disabled = true;
-    try {
-      await apiUpdate(currentId, { story: document.getElementById("storyEdit").value.trim(), updated_at: Date.now() });
-      document.getElementById("storySaved").textContent = "已保存 ✓";
-      toast("故事已保存（云端，所有人可见）");
-    } catch (e) {
-      toast("保存失败：" + e.message);
-    }
-    btn.disabled = false;
+  // ====== 写故事弹窗 ======
+  const entryModal = document.getElementById("entryModal");
+  const entryPreviews = document.getElementById("entryPreviews");
+  let pendingEntryPhotos = [];
+  function openEntryModal() {
+    document.getElementById("entryTitle").value = "";
+    document.getElementById("entryBody").value = "";
+    document.getElementById("entryDate").value = "";
+    document.getElementById("entryPhotos").value = "";
+    pendingEntryPhotos = [];
+    entryPreviews.innerHTML = "";
+    entryModal.classList.remove("hidden");
+    document.getElementById("entryTitle").focus();
+  }
+  function closeEntryModal() { entryModal.classList.add("hidden"); }
+  document.getElementById("newEntryBtn").addEventListener("click", openEntryModal);
+  document.getElementById("cancelEntry").addEventListener("click", closeEntryModal);
+  entryModal.addEventListener("click", (e) => { if (e.target === entryModal) closeEntryModal(); });
+
+  document.getElementById("entryPhotos").addEventListener("change", (e) => {
+    const files = Array.from(e.target.files || []);
+    pendingEntryPhotos = files;
+    entryPreviews.innerHTML = files.map(f => `<img src="${URL.createObjectURL(f)}">`).join("");
   });
 
-  document.getElementById("addPhotoInput").addEventListener("change", async (e) => {
-    const files = Array.from(e.target.files || []);
-    e.target.value = "";
-    if (!files.length || !currentId) return;
-    const btn = document.getElementById("addPhotoBtnLabel");
-    const p = await apiGet(currentId);
-    if (!p) return;
-    btn.textContent = "⏳ 上传中…";
+  document.getElementById("confirmEntry").addEventListener("click", async () => {
+    if (!currentId) return;
+    const title = document.getElementById("entryTitle").value.trim();
+    const body = document.getElementById("entryBody").value.trim();
+    const dateVal = document.getElementById("entryDate").value;
+    if (!title && !body && !pendingEntryPhotos.length) { toast("至少写点文字或选一张照片"); return; }
+    const btn = document.getElementById("confirmEntry");
+    btn.disabled = true; btn.textContent = "⏳ 发布中…";
     try {
+      const happenedTs = dateVal ? dayToTs(dateVal) : Date.now();
+      // 1) 先传照片（成功一张记一张），得到真实数量
       let uploaded = 0;
-      for (const f of files) {
+      for (const f of pendingEntryPhotos) {
         if (!/^image\//.test(f.type)) continue;
         const phid = uid();
-        await uploadPhoto(currentId, phid, f);
-        uploaded++;
+        try { await uploadPhoto(currentId, phid, f, "entry_photo"); uploaded++; }
+        catch (err) { console.warn("单张照片上传失败：", err); }
       }
-      if (uploaded) {
-        // photo_count 以 Storage 实际文件数校准（他人可能也在补充照片）
-        let real = uploaded;
-        try { real = (await listPhotos(currentId)).length; } catch (e) { /* 保持本地计数 */ }
-        await apiUpdate(currentId, { photo_count: real, updated_at: Date.now() });
-        toast(`已追加 ${uploaded} 张照片（云端，所有人可见）`);
-      } else {
-        toast("没有可上传的图片文件");
-      }
+      // 2) 建故事行（标题可空时用首句或日期兜底）
+      const finalTitle = title || (body ? body.slice(0, 16) : fmtDay(happenedTs) + " 的故事");
+      await entryInsert({
+        id: uid(),
+        person_id: currentId,
+        title: finalTitle,
+        body,
+        happened_at: happenedTs,
+        photo_count: uploaded,
+        created_at: Date.now(),
+      });
+      // 3) 顺带刷新人物 updated_at
+      await apiUpdate(currentId, { updated_at: Date.now() });
+      closeEntryModal();
+      toast("故事已发布（云端，所有人可见）");
       openDetail(currentId);
-    } catch (err) {
-      toast("上传失败：" + err.message);
-      btn.textContent = "＋ 追加照片";
+    } catch (e) {
+      toast("发布失败：" + e.message);
     }
+    btn.disabled = false; btn.textContent = "发布";
   });
 
   // ====== 新建人物 ======
