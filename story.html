@@ -315,15 +315,15 @@
   function photoUrl(personId, photoId) {
     return `${SB_URL}/storage/v1/object/public/${BUCKET}/${personId}/${photoId}.jpg`;
   }
-  // 故事照片在 entry_photo 子目录
-  function entryPhotoUrl(personId, photoId) {
-    return `${SB_URL}/storage/v1/object/public/${BUCKET}/${personId}/entry_photo/${photoId}.jpg`;
+  // 故事照片在 entry_photo/<entryId>/ 子目录（每条故事独立目录，互不串位）
+  function entryPhotoUrl(personId, entryId, photoId) {
+    return `${SB_URL}/storage/v1/object/public/${BUCKET}/${personId}/entry_photo/${entryId}/${photoId}.jpg`;
   }
-  // 列出某故事下的照片 id（路径 personId/entry_photo/，按上传时间升序）
-  async function listEntryPhotos(personId) {
+  // 列出某条故事下的照片 id（按上传时间升序）
+  async function listEntryPhotos(personId, entryId) {
     const r = await fetch(`${SB_URL}/storage/v1/object/list/${BUCKET}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json" },
-      body: JSON.stringify({ prefix: personId + "/entry_photo/", limit: 1000, sortBy: { column: "created_at", order: "asc" } }),
+      body: JSON.stringify({ prefix: `${personId}/entry_photo/${entryId}/`, limit: 1000, sortBy: { column: "created_at", order: "asc" } }),
     });
     if (!r.ok) throw new Error("photo list failed: " + r.status);
     const arr = await r.json();
@@ -474,7 +474,7 @@
       const day = fmtDay(e.happened_at);
       const cnt = e.photo_count || 0;
       const photosHtml = cnt
-        ? `<div class="tphotos" data-person="${personId}">${Array.from({ length: cnt }, (_, i) => `<img loading="lazy" data-idx="${i}" alt="故事照片 ${i + 1}">`).join("")}</div>`
+        ? `<div class="tphotos" data-person="${personId}" data-entry="${e.id}">${Array.from({ length: cnt }, (_, i) => `<img loading="lazy" data-idx="${i}" alt="故事照片 ${i + 1}">`).join("")}</div>`
         : "";
       return `<div class="tnode">
         <div class="tdot"></div>
@@ -487,13 +487,15 @@
         </div>
       </div>`;
     }).join("");
-    // 惰性填充每条故事的照片 URL（以 Storage 目录为准）
+    // 惰性填充每条故事的照片 URL（每条故事独立目录，按目录为准）
     timelineEl.querySelectorAll(".tphotos").forEach(ph => {
       const pid = ph.dataset.person;
-      listEntryPhotos(pid).then(ids => {
+      const eid = ph.dataset.entry;
+      listEntryPhotos(pid, eid).then(ids => {
+        if (!ids.length) { ph.style.display = "none"; return; }
         ph.querySelectorAll("img[data-idx]").forEach(img => {
           const i = Number(img.dataset.idx);
-          if (ids[i]) img.src = entryPhotoUrl(pid, ids[i]);
+          if (ids[i]) img.src = entryPhotoUrl(pid, eid, ids[i]);
           else img.style.display = "none";
         });
       }).catch(() => { ph.style.display = "none"; });
@@ -551,18 +553,19 @@
     btn.disabled = true; btn.textContent = "⏳ 发布中…";
     try {
       const happenedTs = dateVal ? dayToTs(dateVal) : Date.now();
-      // 1) 先传照片（成功一张记一张），得到真实数量
+      // 1) 先定故事 id，照片传到它的独立目录 entry_photo/<entryId>/
+      const entryId = uid();
       let uploaded = 0;
       for (const f of pendingEntryPhotos) {
         if (!/^image\//.test(f.type)) continue;
         const phid = uid();
-        try { await uploadPhoto(currentId, phid, f, "entry_photo"); uploaded++; }
+        try { await uploadPhoto(currentId, phid, f, "entry_photo/" + entryId); uploaded++; }
         catch (err) { console.warn("单张照片上传失败：", err); }
       }
       // 2) 建故事行（标题可空时用首句或日期兜底）
       const finalTitle = title || (body ? body.slice(0, 16) : fmtDay(happenedTs) + " 的故事");
       await entryInsert({
-        id: uid(),
+        id: entryId,
         person_id: currentId,
         title: finalTitle,
         body,
