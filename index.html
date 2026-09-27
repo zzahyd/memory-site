@@ -706,7 +706,8 @@
     });
     // 时光手记在 iframe 内打开（嵌套在 memory.html 里），与背景音乐无缝延续
     window.openStory = function () {
-      if (open) return; open = true;
+      open = true;
+      if (frame.getAttribute('src') === 'story.html') return; // 已在手记页，避免重复加载
       frame.src = 'story.html';
       frame.classList.add('show');
     };
