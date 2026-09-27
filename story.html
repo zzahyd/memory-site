@@ -290,16 +290,17 @@
     return r.json();
   }
   async function entryCountAll() {
-    // 每个人物条目数 + 最新故事时间 + 最新故事标题（用于列表卡片），一次拉全表在本地聚合（数据量级为班级规模，完全够用）
-    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}?select=person_id,title,happened_at,created_at&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
+    // 每个人物条目数 + 最新故事时间/标题/条目id（列表卡片与缩略图用），一次拉全表本地聚合（班级量级完全够用）
+    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}?select=id,person_id,title,happened_at,created_at,photo_count&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
     if (!r.ok) throw new Error("entry agg failed: " + r.status);
     const rows = await r.json();
     const map = {};
     for (const e of rows) {
-      const m = map[e.person_id] || (map[e.person_id] = { count: 0, latest: 0, latestTitle: "" });
+      const m = map[e.person_id] || (map[e.person_id] = { count: 0, latest: 0, latestTitle: "", latestEntryId: "", latestWithPhotoEntryId: "" });
       m.count++;
-      if ((e.happened_at || 0) > m.latest) { m.latest = e.happened_at || 0; m.latestTitle = e.title || ""; }
-      else if ((e.happened_at || 0) === m.latest && !m.latestTitle) m.latestTitle = e.title || "";
+      if (e.photo_count > 0) m.latestWithPhotoEntryId = e.id; // created_at 升序遍历 => 最后一个带图故事即最新带图故事
+      if ((e.happened_at || 0) > m.latest) { m.latest = e.happened_at || 0; m.latestTitle = e.title || ""; m.latestEntryId = e.id || ""; }
+      else if ((e.happened_at || 0) === m.latest && !m.latestTitle) { m.latestTitle = e.title || ""; m.latestEntryId = e.id || ""; }
     }
     return map;
   }
@@ -422,9 +423,11 @@
       const cnt = agg ? ` · ${agg.count} 个故事` : "";
       const intro = escapeHtml(p.story || (agg && agg.latestTitle ? `最新故事：${agg.latestTitle}` : "（还没有写故事）"));
       const lastT = agg && agg.latest ? `最近的故事：${fmtDay(agg.latest)}` : `更新于 ${fmt(p.updated_at)}`;
-      const thumb = p.photo_count
+      // 缩略图来源：优先人物头像(根目录)，没有则回退最新一张故事照片——发故事后主界面直接能看到图
+      const hasAvatar = !!p.photo_count;
+      const thumb = hasAvatar
         ? `<img class="thumb" loading="lazy" data-person="${p.id}" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'ph-placeholder\\'>🙂</div>'">`
-        : `<div class="ph-placeholder">🙂</div>`;
+        : `<img class="thumb" loading="lazy" data-person="${p.id}" data-latest="1" alt="${escapeHtml(p.name)}" onerror="this.outerHTML='<div class=\\'ph-placeholder\\'>🙂</div>'">`;
       return `<div class="person" data-id="${p.id}">
         ${thumb}
         <div class="meta">
@@ -434,11 +437,21 @@
         </div>
       </div>`;
     }).join("");
-    // 惰性加载每张缩略图的真实首图 id
+    // 惰性加载缩略图：有头像取根目录首图；否则取该人物"最新故事"目录里的第一张照片
     grid.querySelectorAll("img.thumb[data-person]").forEach(img => {
       const pid = img.dataset.person;
-      listPhotos(pid).then(ids => { if (ids.length) img.src = photoUrl(pid, ids[0]); else img.outerHTML = `<div class='ph-placeholder'>🙂</div>`; })
-        .catch(() => { /* 保留占位符 */ });
+      if (img.dataset.latest) {
+        // 无头像 => 取最新带图故事目录里的第一张照片
+        const eid = (emap[pid] && emap[pid].latestWithPhotoEntryId) || "";
+        if (!eid) { img.outerHTML = `<div class='ph-placeholder'>🙂</div>`; return; }
+        listEntryPhotos(pid, eid).then(ids => {
+          if (ids.length) img.src = entryPhotoUrl(pid, eid, ids[0]);
+          else img.outerHTML = `<div class='ph-placeholder'>🙂</div>`;
+        }).catch(() => { img.outerHTML = `<div class='ph-placeholder'>🙂</div>`; });
+      } else {
+        listPhotos(pid).then(ids => { if (ids.length) img.src = photoUrl(pid, ids[0]); else img.outerHTML = `<div class='ph-placeholder'>🙂</div>`; })
+          .catch(() => { /* 保留占位符 */ });
+      }
     });
     grid.querySelectorAll(".person").forEach(el => el.addEventListener("click", () => openDetail(el.dataset.id)));
   }
