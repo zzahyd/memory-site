@@ -408,9 +408,10 @@
     return arr[0] || null;
   }
   async function apiInsert(row) {
+    const body = Object.assign({}, row, { owner_token: DEVICE_TOKEN });
     const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify(row),
+      body: JSON.stringify(body),
     }, 1);
     if (!r.ok && r.status !== 201) throw new Error("insert failed: " + r.status);
   }
@@ -1100,9 +1101,10 @@
     try {
       const now = Date.now();
       const id = uid();
-      // 1) 建行（照片清单以 Storage 目录为准，行里只存计数）
+      // 1) 建行（携带设备令牌 => 创建者此后可编辑/管理该人物；照片清单以 Storage 目录为准）
       await apiInsert({
         id, name, story,
+        owner_token: DEVICE_TOKEN,
         photo_count: 0,
         created_at: now, updated_at: now,
       });
