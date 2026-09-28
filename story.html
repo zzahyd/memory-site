@@ -68,17 +68,18 @@
   /* ===== 详情（时间轴） ===== */
   .detail { position: relative; z-index: 2; max-width: 720px; margin: 0 auto; padding: 8px 18px 60px; }
   .detail.hidden, .list.hidden, .modal.hidden { display: none !important; }
-  /* 人物故事页个人背景：该人物有头像时，用头像铺满整页（柔和虚化+浅色蒙版保证文字可读） */
-  .detail.has-person-bg { position: fixed; inset: 0; max-width: none; overflow-y: auto; z-index: 3;
+  /* 人物故事页个人背景：仅白名单人物生效。页面结构与布局与其他人完全一致，
+     只是把整页背景替换为该人物的头像图（浅色蒙版保证文字可读），其余样式零改动 */
+  .detail.has-person-bg {
     background-color: #eef1fa;
     background-image:
-      linear-gradient(rgba(246,248,255,0.82), rgba(246,248,255,0.88)),
+      linear-gradient(rgba(246,248,255,0.78), rgba(246,248,255,0.30) 40%, rgba(246,248,255,0.88) 92%),
       var(--person-bg);
     background-size: cover;
     background-position: center top;
-    background-attachment: scroll; }
-  .detail.has-person-bg .tcard { background: rgba(255,255,255,0.94); }
-  .detail.has-person-bg .dbio { background: rgba(255,255,255,0.92); }
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
   .dname { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: #3a3a4a; margin: 4px 0 2px; }
   .dtime { font-size: 12px; color: #a0a0b8; margin-bottom: 8px; }
   /* 人物简介卡（详情页顶部） */
