@@ -70,15 +70,19 @@
   .detail.hidden, .list.hidden, .modal.hidden { display: none !important; }
   /* 人物故事页个人背景：仅白名单人物生效。页面结构与布局与其他人完全一致，
      只是把整页背景替换为该人物的头像图（浅色蒙版保证文字可读），其余样式零改动 */
-  .detail.has-person-bg {
+  /* 图片 1600x1217（横向），要"不裁切+尽可能大面积"：
+     - 挂在 html 上，背景绘制区域 = 整个文档（宽 100vw、高=整页高），而非 720px 内容列
+     - 不用 attachment:fixed（fixed 时 contain 相对视口，图会被压小）
+     - contain 相对文档尺寸：宽屏下图片按宽度撑满、高约 0.76*视宽，大而完整 */
+  html.person-bg-on {
     background-color: #eef1fa;
     background-image:
       linear-gradient(rgba(246,248,255,0.78), rgba(246,248,255,0.30) 40%, rgba(246,248,255,0.88) 92%),
       var(--person-bg);
-    background-size: contain;
+    background-size: 100% auto;
     background-position: center top;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-attachment: scroll;
   }
   .dname { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: #3a3a4a; margin: 4px 0 2px; }
   .dtime { font-size: 12px; color: #a0a0b8; margin-bottom: 8px; }
@@ -723,19 +727,18 @@
     currentEntries = entries;
     // 人物详情页背景：仅对白名单人物启用（当前只有袁景成），背景图用其头像
     const PERSON_BG_IDS = new Set(["pmukhp5q4npxyqq"]); // 袁景成
-    const detailEl = document.getElementById("detailView");
+    const rootEl = document.documentElement;
+    const clearPersonBg = () => { rootEl.classList.remove("person-bg-on"); rootEl.style.removeProperty("--person-bg"); };
     if (PERSON_BG_IDS.has(id) && p.photo_count > 0) {
-      // 首图 id 需查 Storage 根目录（头像），异步设置
+      // 首图 id 需查 Storage 根目录（头像），异步设置在 <html> 上（背景绘制区域=整个文档）
       listPhotos(id).then(ids => {
         if (ids.length) {
-          detailEl.style.setProperty("--person-bg", `url("${photoUrl(id, ids[0])}")`);
-          detailEl.classList.add("has-person-bg");
-        } else {
-          detailEl.classList.remove("has-person-bg");
-        }
-      }).catch(() => detailEl.classList.remove("has-person-bg"));
+          rootEl.style.setProperty("--person-bg", `url("${photoUrl(id, ids[0])}")`);
+          rootEl.classList.add("person-bg-on");
+        } else clearPersonBg();
+      }).catch(clearPersonBg);
     } else {
-      detailEl.classList.remove("has-person-bg");
+      clearPersonBg();
     }
     window.scrollTo(0, 0);
   }
@@ -1027,6 +1030,9 @@
     detailView.classList.add("hidden");
     listView.classList.remove("hidden");
     currentId = null;
+    // 清除人物背景（html 上的类与变量）
+    document.documentElement.classList.remove("person-bg-on");
+    document.documentElement.style.removeProperty("--person-bg");
     renderList();
   }
   document.getElementById("backToList").addEventListener("click", backToList);
