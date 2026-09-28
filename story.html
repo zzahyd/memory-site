@@ -209,6 +209,7 @@
   <div class="topbar">
     <div class="title">时光手记</div>
     <div class="topbar-right">
+      <span id="adminBadge" class="hidden" style="font-size:11px; color:#8a6ad0; background:rgba(150,120,220,0.14); border:1px solid rgba(150,120,220,0.35); border-radius:999px; padding:4px 10px; letter-spacing:0.05em;">👑 管理员模式</span>
       <button class="btn primary" id="newBtn">＋ 新建人物</button>
       <a class="back" id="backLink" href="memory.html">← 返回</a>
     </div>
@@ -711,6 +712,12 @@
     const delPersonBtn = document.getElementById("delPersonBtn");
     if (isAdmin()) { delPersonBtn.classList.remove("hidden"); }
     else { delPersonBtn.classList.add("hidden"); }
+    // 顶栏身份徽标：让"当前设备是否处于管理员模式"一目了然
+    const badge = document.getElementById("adminBadge");
+    if (badge) {
+      if (isAdmin()) { badge.textContent = "👑 管理员模式"; badge.classList.remove("hidden"); }
+      else { badge.classList.add("hidden"); }
+    }
     document.getElementById("dTime").textContent = entries.length
       ? `${entries.length} 个故事 · 由同学们共同记录`
       : "还没有故事，点上方「＋ 写一个故事」开始";
