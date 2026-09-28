@@ -711,6 +711,13 @@
       frame.src = 'story.html';
       frame.classList.add('show');
     };
+    // 从手记返回组别（星座）页：切换 iframe 内容而非关闭浮层，音乐不断
+    window.openMemory = function () {
+      open = true;
+      if (frame.getAttribute('src') === 'memory.html') return;
+      frame.src = 'memory.html';
+      frame.classList.add('show');
+    };
   })();
   </script>
 </body>

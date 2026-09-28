@@ -832,7 +832,7 @@
     const btn = document.getElementById("eeSave");
     btn.disabled = true; btn.textContent = "⏳ 保存中…";
     try {
-      const patch = { updated: true };
+      const patch = {};
       if (title) patch.title = title;
       if (dateVal) patch.happened_at = dayToTs(dateVal);
       patch.body = body;
@@ -1128,10 +1128,16 @@
     btn.disabled = false; btn.textContent = "保存";
   });
 
-  // ====== 内嵌返回 ======
+  // ====== 内嵌返回：优先回到组别（星座）页（换 iframe 内容，浮层不关、音乐不断）；
+  // 仅当父页面没有 openMemory（如直接访问 story.html 的旧入口）时才整体关闭 ======
   if (EMBEDDED) {
     const back = document.getElementById("backLink");
-    back.addEventListener("click", (e) => { e.preventDefault(); if (window.parent && window.parent.closeMemory) window.parent.closeMemory(); });
+    back.addEventListener("click", (e) => {
+      e.preventDefault();
+      const p = window.parent;
+      if (p && p.openMemory) p.openMemory();
+      else if (p && p.closeMemory) p.closeMemory();
+    });
   }
 
   // 首屏渲染
