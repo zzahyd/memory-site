@@ -87,6 +87,8 @@
   /* 背景图模式下隐藏彩色光斑层与蒙层——否则 blur100px 的光斑会把整张图糊掉 */
   html.person-bg-on .bg,
   html.person-bg-on .veil { display: none !important; }
+  /* 关键：body 的不透明背景会把 html 的背景图完全盖住（浏览器把 body 背景绘制在 html 背景之上），必须放行 */
+  html.person-bg-on body { background: transparent; }
   .dname { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: #3a3a4a; margin: 4px 0 2px; }
   .dtime { font-size: 12px; color: #a0a0b8; margin-bottom: 8px; }
   /* 人物简介卡（详情页顶部） */
