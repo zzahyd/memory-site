@@ -685,9 +685,9 @@
     listView.classList.add("hidden");
     detailView.classList.remove("hidden");
     document.getElementById("dName").textContent = p.name;
-    // 人物删除入口：仅创建者/管理员可见
+    // 人物删除入口：仅管理员可见（普通发布者不显示"删除此人"，避免误删整个人物）
     const delPersonBtn = document.getElementById("delPersonBtn");
-    if (mine(p)) { delPersonBtn.classList.remove("hidden"); }
+    if (isAdmin()) { delPersonBtn.classList.remove("hidden"); }
     else { delPersonBtn.classList.add("hidden"); }
     document.getElementById("dTime").textContent = entries.length
       ? `${entries.length} 个故事 · 由同学们共同记录`
