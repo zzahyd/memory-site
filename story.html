@@ -75,7 +75,20 @@
     border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 8px 24px rgba(58,58,74,0.10); margin-bottom: 16px;
     font-size: 13.5px; color: #5a5a72; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
   .dbio::before { content: "📌 简介"; display: block; font-size: 11px; color: #b0a0d0; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .dbio .edit-btn { position: absolute; top: 10px; right: 12px; cursor: pointer; background: none; border: none;
+    font-size: 12px; color: #9a8ac0; padding: 2px 6px; border-radius: 8px; }
+  .dbio .edit-btn:hover { background: rgba(255,255,255,0.9); color: #6a5a9a; }
   .dbio.hidden { display: none !important; }
+
+  /* 简介编辑弹窗复用 modal 样式；故事编辑弹窗也复用 */
+  #bioModal textarea, #entryEditModal textarea { width: 100%; min-height: 110px; resize: vertical; font-family: inherit;
+    font-size: 14px; color: #3a3a4a; line-height: 1.7; border: 1px solid rgba(58,58,74,0.16); border-radius: 12px;
+    padding: 10px 12px; background: #fbfbff; outline: none; }
+  #bioModal textarea:focus, #entryEditModal textarea:focus { border-color: rgba(158,193,255,0.9); box-shadow: 0 0 0 3px rgba(158,193,255,0.18); }
+  #entryEditModal input[type=text] { width: 100%; font-family: inherit; font-size: 14px; color: #3a3a4a;
+    border: 1px solid rgba(58,58,74,0.16); border-radius: 12px; padding: 10px 12px; background: #fbfbff; outline: none; }
+  #entryEditModal input[type=date] { width: 100%; font-family: inherit; font-size: 14px; color: #3a3a4a;
+    border: 1px solid rgba(58,58,74,0.16); border-radius: 12px; padding: 8px 12px; background: #fbfbff; outline: none; }
   .addphoto { margin-top: 4px; margin-bottom: 22px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
   /* 时间轴主体 */
@@ -119,6 +132,10 @@
   .cmt-toggle { cursor: pointer; background: none; border: none; font-size: 12px; color: #8a8aa8;
     padding: 4px 0 0; display: inline-flex; align-items: center; gap: 4px; }
   .cmt-toggle:hover { color: #6a6a92; }
+  .cmt .cmt-edit-btn { cursor: pointer; background: none; border: none; font-size: 10.5px; color: #a0a0c0; padding: 0 4px; }
+  .cmt .cmt-edit-btn:hover { color: #6a6a92; text-decoration: underline; }
+  .cmt .cmt-edit-box input[type=text] { width: 100%; font-family: inherit; font-size: 13px; color: #3a3a4a;
+    border: 1px solid rgba(158,193,255,0.7); border-radius: 8px; padding: 5px 9px; background: #fbfbff; outline: none; margin-top: 4px; }
   .tempty { padding: 40px 10px 30px; text-align: center; color: #9a9ab0; font-size: 14px; line-height: 2; }
 
   /* 图片放大查看 */
@@ -190,6 +207,7 @@
     <div class="dbio hidden" id="dBio"></div>
     <div class="addphoto">
       <button class="btn primary" id="newEntryBtn">＋ 写一个故事</button>
+      <button class="btn hidden" id="delPersonBtn" style="border-color:rgba(220,120,120,0.4); color:#b35050;">🗑 删除此人</button>
     </div>
     <div class="timeline" id="timeline"></div>
   </div>
@@ -255,6 +273,44 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- 简介编辑弹窗 -->
+  <div class="modal hidden" id="bioModal">
+    <div class="modal-card">
+      <h3>✏️ 编辑简介</h3>
+      <div class="field">
+        <label>这个人的简介</label>
+        <textarea id="bioEditArea" maxlength="500" placeholder="介绍一下他/她…"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="bioCancel">取消</button>
+        <button class="btn primary" id="bioSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 故事编辑弹窗 -->
+  <div class="modal hidden" id="entryEditModal">
+    <div class="modal-card">
+      <h3>✏️ 编辑故事</h3>
+      <div class="field">
+        <label>故事标题</label>
+        <input type="text" id="eeTitle" maxlength="50" />
+      </div>
+      <div class="field">
+        <label>故事发生的时间</label>
+        <input type="date" id="eeDate" />
+      </div>
+      <div class="field">
+        <label>故事内容</label>
+        <textarea id="eeBody" placeholder="写下这段回忆…（可留空只放照片）"></textarea>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" id="eeCancel">取消</button>
+        <button class="btn primary" id="eeSave">保存</button>
+      </div>
+    </div>
+  </div>
+
 <script>
 (function () {
   "use strict";
@@ -269,6 +325,40 @@
   const AUTH_HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
 
   const uid = () => "p" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  // ====== 设备令牌：标识"这台设备发布的内容"，编辑权校验依据 ======
+  // 不需要注册：令牌首次访问时随机生成，存 localStorage；发布时随行写入，编辑时本地比对
+  let DEVICE_TOKEN = null;
+  try {
+    DEVICE_TOKEN = localStorage.getItem("story_device_token");
+    if (!DEVICE_TOKEN) {
+      DEVICE_TOKEN = "tk_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 14) + Math.random().toString(36).slice(2, 14);
+      localStorage.setItem("story_device_token", DEVICE_TOKEN);
+    }
+  } catch (e) { DEVICE_TOKEN = "tk_anon_" + Math.random().toString(36).slice(2, 18); }
+  // 管理员身份：详情页评论区输入框留空连点「发送」5 次 → 本机升级管理员。
+  // 原理：预共享管理令牌（与服务端 app_config 一致），编辑/删除请求走服务端校验。
+  const ADMIN_SHARED_TOKEN = "ADMIN_luBan2026_memory_admin_x7Kq9";
+  let ADMIN_TOKEN = null;
+  try {
+    const urlParams = new URLSearchParams(location.search);
+    const fromUrl = urlParams.get("admin_key");
+    if (fromUrl) { localStorage.setItem("story_admin_token", fromUrl); }
+    ADMIN_TOKEN = localStorage.getItem("story_admin_token") || null;
+  } catch (e) { /* localStorage 不可用时无管理员身份 */ }
+  // 当前生效的编辑令牌：管理员优先，否则用设备令牌
+  const activeToken = () => ADMIN_TOKEN || DEVICE_TOKEN;
+  const isAdmin = () => !!ADMIN_TOKEN;
+  const mine = (row) => !!row && (row.owner_token === activeToken() || isAdmin());
+
+  // 彩蛋：激活本机管理员身份（无需密码）
+  function activateAdmin() {
+    if (isAdmin()) { toast("已经是管理员身份"); return; }
+    try { localStorage.setItem("story_admin_token", ADMIN_SHARED_TOKEN); } catch (e) {}
+    ADMIN_TOKEN = ADMIN_SHARED_TOKEN;
+    toast("✨ 管理员身份已激活");
+    // 刷新当前视图，让编辑/删除按钮立即出现
+    if (currentId) openDetail(currentId); else renderList();
+  }
   const fmt = (ts) => {
     const d = new Date(Number(ts) || Date.now());
     const p = (n) => String(n).padStart(2, "0");
@@ -324,11 +414,14 @@
     }, 1);
     if (!r.ok && r.status !== 201) throw new Error("insert failed: " + r.status);
   }
+  // 更新：附带令牌校验（服务端 RLS 强制 owner_token 匹配才放行）
   async function apiUpdate(id, patch) {
+    const body = Object.assign({}, patch, { owner_token: activeToken() });
     const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify(patch),
+      body: JSON.stringify(body),
     }, 1);
+    if (r.status === 403 || r.status === 401) throw new Error("只能编辑自己发布的内容");
     if (!r.ok && r.status !== 204) throw new Error("update failed: " + r.status);
   }
   // ====== 故事条目 API（story_entries 表）======
@@ -339,7 +432,7 @@
   }
   async function entryCountAll() {
     // 每个人物条目数 + 最新故事时间/标题/条目id（列表卡片与缩略图用），一次拉全表本地聚合（班级量级完全够用）
-    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?select=id,person_id,title,happened_at,created_at,photo_count&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?select=id,person_id,title,happened_at,created_at,photo_count,owner_token&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
     if (!r.ok) throw new Error("entry agg failed: " + r.status);
     const rows = await r.json();
     const map = {};
@@ -353,11 +446,22 @@
     return map;
   }
   async function entryInsert(row) {
+    const body = Object.assign({}, row, { owner_token: activeToken() });
     const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify(row),
+      body: JSON.stringify(body),
     }, 1);
     if (!r.ok && r.status !== 201) throw new Error("entry insert failed: " + r.status);
+  }
+  // 故事条目更新（带令牌校验）
+  async function entryUpdate(id, patch) {
+    const body = Object.assign({}, patch, { owner_token: activeToken() });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(body),
+    }, 1);
+    if (r.status === 403 || r.status === 401) throw new Error("只能编辑自己发布的内容");
+    if (!r.ok && r.status !== 204) throw new Error("entry update failed: " + r.status);
   }
 
   // ====== 评论 API（story_comments 表）======
@@ -367,11 +471,59 @@
     return r.json();
   }
   async function commentInsert(row) {
+    const body = Object.assign({}, row, { owner_token: activeToken() });
     const r = await fetchRetry(`${SB_URL}/rest/v1/${CTABLE}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
-      body: JSON.stringify(row),
+      body: JSON.stringify(body),
     }, 1);
     if (!r.ok && r.status !== 201) throw new Error("comment insert failed: " + r.status);
+  }
+  // 评论更新（带令牌校验，编辑自己的评论用）
+  async function commentUpdate(id, patch) {
+    const body = Object.assign({}, patch, { owner_token: activeToken() });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${CTABLE}?id=eq.${encodeURIComponent(id)}`, {
+      method: "PATCH", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(body),
+    }, 1);
+    if (r.status === 403 || r.status === 401) throw new Error("只能编辑自己发布的内容");
+    if (!r.ok && r.status !== 204) throw new Error("comment update failed: " + r.status);
+  }
+
+  // ====== 删除 API：DELETE 无法带 body，令牌走自定义 header（RLS 从 header 读取校验）======
+  const DELETE_HEADERS = () => ({
+    ...AUTH_HEADERS,
+    "x-owner-token": activeToken(),
+  });
+  async function personDelete(id) {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
+      method: "DELETE", headers: DELETE_HEADERS(),
+    }, 1);
+    if (r.status === 403 || r.status === 401) throw new Error("只能删除自己发布的内容");
+    if (!r.ok && r.status !== 204) throw new Error("delete failed: " + r.status);
+    // 校验是否真删掉（RLS 静默拦截时返回 204 但 0 行被删）
+    const check = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}&select=id`, { headers: AUTH_HEADERS });
+    const arr = await check.json();
+    if (arr && arr.length) throw new Error("没有删除权限");
+  }
+  async function entryDelete(id) {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?id=eq.${encodeURIComponent(id)}`, {
+      method: "DELETE", headers: DELETE_HEADERS(),
+    }, 1);
+    if (r.status === 403 || r.status === 401) throw new Error("只能删除自己发布的内容");
+    if (!r.ok && r.status !== 204) throw new Error("delete failed: " + r.status);
+    const check = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?id=eq.${encodeURIComponent(id)}&select=id`, { headers: AUTH_HEADERS });
+    const arr = await check.json();
+    if (arr && arr.length) throw new Error("没有删除权限");
+  }
+  async function commentDelete(id) {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${CTABLE}?id=eq.${encodeURIComponent(id)}`, {
+      method: "DELETE", headers: DELETE_HEADERS(),
+    }, 1);
+    if (r.status === 403 || r.status === 401) throw new Error("只能删除自己发布的内容");
+    if (!r.ok && r.status !== 204) throw new Error("delete failed: " + r.status);
+    const check = await fetchRetry(`${SB_URL}/rest/v1/${CTABLE}?id=eq.${encodeURIComponent(id)}&select=id`, { headers: AUTH_HEADERS });
+    const arr = await check.json();
+    if (arr && arr.length) throw new Error("没有删除权限");
   }
 
   // 照片存 Storage：路径 personId/photoId.jpg；公开桶 => 直接拼公开 URL，无需签名
@@ -450,6 +602,8 @@
   const lightbox = document.getElementById("lightbox");
   const lightboxImg = document.getElementById("lightboxImg");
   let currentId = null;
+  let currentPerson = null;
+  let currentEntries = null;
   function setBusy(on, text) {
     const sub = document.querySelector("#listView .sub");
     if (sub && on) sub.textContent = text || "⏳ 云端加载中…";
@@ -527,21 +681,33 @@
     setBusy(false);
     if (!p) { toast("未找到该人物"); return; }
     currentId = id;
+    currentPerson = p;
     listView.classList.add("hidden");
     detailView.classList.remove("hidden");
     document.getElementById("dName").textContent = p.name;
+    // 人物删除入口：仅创建者/管理员可见
+    const delPersonBtn = document.getElementById("delPersonBtn");
+    if (mine(p)) { delPersonBtn.classList.remove("hidden"); }
+    else { delPersonBtn.classList.add("hidden"); }
     document.getElementById("dTime").textContent = entries.length
       ? `${entries.length} 个故事 · 由同学们共同记录`
       : "还没有故事，点上方「＋ 写一个故事」开始";
-    // 人物简介：有则显示在时间轴上方
+    // 人物简介：有则显示在时间轴上方（仅发布者可见编辑按钮）
     const bioEl = document.getElementById("dBio");
     if (p.story && p.story.trim()) {
       bioEl.textContent = p.story.trim();
+      if (mine(p)) {
+        const eb = document.createElement("button");
+        eb.className = "edit-btn"; eb.textContent = "✏️ 编辑";
+        eb.addEventListener("click", () => openBioModal(p));
+        bioEl.appendChild(eb);
+      }
       bioEl.classList.remove("hidden");
     } else {
       bioEl.classList.add("hidden");
     }
     renderTimeline(id, entries);
+    currentEntries = entries;
     window.scrollTo(0, 0);
   }
 
@@ -559,6 +725,11 @@
       const photosHtml = cnt
         ? `<div class="tphotos" data-person="${personId}" data-entry="${e.id}">${Array.from({ length: cnt }, (_, i) => `<img loading="lazy" data-idx="${i}" alt="故事照片 ${i + 1}">`).join("")}</div>`
         : "";
+      // 仅发布者/管理员可见编辑与删除按钮
+      const canEdit = mine(e);
+      const editBtn = canEdit
+        ? `<button class="cmt-toggle" data-edit-entry="${e.id}">✏️ 编辑</button><button class="cmt-toggle" data-del-entry="${e.id}" style="color:#c98a8a;">🗑 删除</button>`
+        : "";
       return `<div class="tnode">
         <div class="tdot"></div>
         <div class="tcard">
@@ -568,7 +739,7 @@
           ${photosHtml}
           <div class="tmeta">
             <span>发布于 ${fmt(e.created_at)} · ☁️ 所有人可见</span>
-            <button class="cmt-toggle" data-entry="${e.id}">💬 评论</button>
+            <span>${editBtn}<button class="cmt-toggle" data-entry="${e.id}">💬 评论</button></span>
           </div>
           <div class="tcomments hidden" id="cmts-${e.id}"></div>
         </div>
@@ -596,7 +767,7 @@
       });
     });
     // ====== 评论：点「💬 评论」展开/收起评论区 ======
-    timelineEl.querySelectorAll(".cmt-toggle").forEach(btnEl => {
+    timelineEl.querySelectorAll(".cmt-toggle[data-entry]").forEach(btnEl => {
       btnEl.addEventListener("click", async () => {
         const eid = btnEl.dataset.entry;
         const box = document.getElementById("cmts-" + eid);
@@ -607,7 +778,117 @@
         await renderComments(eid, box);
       });
     });
+    // ====== 删除故事：仅发布者/管理员可见（data-del-entry）======
+    timelineEl.querySelectorAll("[data-del-entry]").forEach(btnEl => {
+      btnEl.addEventListener("click", async () => {
+        const eid = btnEl.dataset.delEntry;
+        if (!confirm("确定删除这条故事？删除后所有人都会看不到它。")) return;
+        btnEl.textContent = "⏳ 删除中…";
+        try {
+          await entryDelete(eid);
+          toast("故事已删除");
+          openDetail(currentId);
+        } catch (err) {
+          toast(err.message || "删除失败");
+          btnEl.textContent = "🗑 删除";
+        }
+      });
+    });
+    // ====== 编辑故事：仅发布者可见（data-edit-entry）======
+    timelineEl.querySelectorAll("[data-edit-entry]").forEach(btnEl => {
+      btnEl.addEventListener("click", () => {
+        const eid = btnEl.dataset.editEntry;
+        const e = (currentEntries || []).find(x => x.id === eid);
+        if (e) openEntryEditModal(e);
+      });
+    });
   }
+
+  // ====== 编辑故事弹窗 ======
+  const entryEditModal = document.getElementById("entryEditModal");
+  let editingEntryId = null;
+  function tsToDay(ts) {
+    const d = new Date(Number(ts) || Date.now());
+    const p = (n) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  }
+  function openEntryEditModal(e) {
+    editingEntryId = e.id;
+    document.getElementById("eeTitle").value = e.title || "";
+    document.getElementById("eeBody").value = e.body || "";
+    document.getElementById("eeDate").value = tsToDay(e.happened_at);
+    entryEditModal.classList.remove("hidden");
+  }
+  function closeEntryEditModal() { entryEditModal.classList.add("hidden"); editingEntryId = null; }
+  document.getElementById("eeCancel").addEventListener("click", closeEntryEditModal);
+  entryEditModal.addEventListener("click", (e) => { if (e.target === entryEditModal) closeEntryEditModal(); });
+  document.getElementById("eeSave").addEventListener("click", async () => {
+    if (!editingEntryId) return;
+    const title = document.getElementById("eeTitle").value.trim();
+    const body = document.getElementById("eeBody").value.trim();
+    const dateVal = document.getElementById("eeDate").value;
+    if (!title && !body) { toast("标题和内容不能同时为空"); return; }
+    const btn = document.getElementById("eeSave");
+    btn.disabled = true; btn.textContent = "⏳ 保存中…";
+    try {
+      const patch = { updated: true };
+      if (title) patch.title = title;
+      if (dateVal) patch.happened_at = dayToTs(dateVal);
+      patch.body = body;
+      await entryUpdate(editingEntryId, patch);
+      closeEntryEditModal();
+      toast("故事已更新（云端，所有人可见）");
+      openDetail(currentId);
+    } catch (e) {
+      toast(e.message || "保存失败");
+    }
+    btn.disabled = false; btn.textContent = "保存";
+  });
+
+  // ====== 编辑简介弹窗 ======
+  const bioModal = document.getElementById("bioModal");
+  function openBioModal(p) {
+    document.getElementById("bioEditArea").value = p.story || "";
+    bioModal.classList.remove("hidden");
+  }
+  function closeBioModal() { bioModal.classList.add("hidden"); }
+  document.getElementById("bioCancel").addEventListener("click", closeBioModal);
+  bioModal.addEventListener("click", (e) => { if (e.target === bioModal) closeBioModal(); });
+  document.getElementById("bioSave").addEventListener("click", async () => {
+    if (!currentId || !currentPerson) return;
+    const val = document.getElementById("bioEditArea").value.trim();
+    const btn = document.getElementById("bioSave");
+    btn.disabled = true; btn.textContent = "⏳ 保存中…";
+    try {
+      await apiUpdate(currentId, { story: val, updated_at: Date.now() });
+      closeBioModal();
+      toast("简介已更新（云端，所有人可见）");
+      openDetail(currentId);
+    } catch (e) {
+      toast(e.message || "保存失败");
+    }
+    btn.disabled = false; btn.textContent = "保存";
+  });
+
+  // ====== 删除人物（创建者/管理员）：连带删除其全部故事与评论 ======
+  document.getElementById("delPersonBtn").addEventListener("click", async () => {
+    if (!currentId || !currentPerson) return;
+    if (!confirm(`确定删除「${currentPerson.name}」？\n将同时删除其全部故事与评论，所有人都会看不到，此操作不可恢复。`)) return;
+    const btn = document.getElementById("delPersonBtn");
+    btn.disabled = true; btn.textContent = "⏳ 删除中…";
+    try {
+      // 1) 删全部故事条目
+      const entries = currentEntries || [];
+      for (const e of entries) { try { await entryDelete(e.id); } catch (err) { console.warn("条目删除失败:", err); } }
+      // 2) 删人物行
+      await personDelete(currentId);
+      toast(`已删除「${currentPerson.name}」`);
+      backToList();
+    } catch (err) {
+      toast(err.message || "删除失败");
+    }
+    btn.disabled = false; btn.textContent = "🗑 删除此人";
+  });
 
   // 渲染某条故事的评论区（列表 + 输入框）
   async function renderComments(entryId, box) {
@@ -615,23 +896,79 @@
     try { comments = await commentList(entryId); }
     catch (e) { box.innerHTML = `<div class="cmt-empty">评论加载失败，稍后再试</div>`; return; }
     const listHtml = comments.length
-      ? `<div class="cmt-list">${comments.map(c => `
-          <div class="cmt">
+      ? `<div class="cmt-list">${comments.map(c => {
+          const canEdit = mine(c);
+          const ops = canEdit
+            ? `<button class="cmt-edit-btn" data-cedit="${c.id}">✏️ 编辑</button><button class="cmt-edit-btn" data-cdel="${c.id}" style="color:#c98a8a;">🗑 删除</button>`
+            : "";
+          return `<div class="cmt">
             <div class="cname">${escapeHtml(c.name || "匿名")}</div>
             <div class="ctext">${escapeHtml(c.text)}</div>
-            <div class="ctime">${fmt(c.created_at)}</div>
-          </div>`).join("")}</div>`
+            <div class="ctime">${fmt(c.created_at)} ${ops}</div>
+          </div>`;
+        }).join("")}</div>`
       : `<div class="cmt-empty">还没有评论，说点什么吧～</div>`;
     box.innerHTML = `${listHtml}
       <div class="cmt-form">
         <input type="text" maxlength="200" placeholder="写下你的评论…（回车发送）" data-cinput="${entryId}">
         <button class="btn primary" style="padding:7px 14px;" data-csend="${entryId}">发送</button>
       </div>`;
+    // 评论删除（仅自己的评论/管理员显示）
+    box.querySelectorAll("[data-cdel]").forEach(db => {
+      db.addEventListener("click", async () => {
+        const cid = db.dataset.cdel;
+        if (!confirm("确定删除这条评论？")) return;
+        db.textContent = "…";
+        try {
+          await commentDelete(cid);
+          toast("评论已删除");
+          await renderComments(entryId, box);
+        } catch (err) { toast(err.message || "删除失败"); db.textContent = "🗑 删除"; }
+      });
+    });
+    // 评论编辑（仅自己的评论显示按钮）：点编辑 => 原地变输入框 => 回车保存
+    box.querySelectorAll("[data-cedit]").forEach(eb => {
+      eb.addEventListener("click", () => {
+        const cid = eb.dataset.cedit;
+        const c = comments.find(x => x.id === cid);
+        const node = eb.closest(".cmt");
+        if (!c || !node || node.querySelector(".cmt-edit-box")) return;
+        const editor = document.createElement("div");
+        editor.className = "cmt-edit-box";
+        editor.innerHTML = `<input type="text" maxlength="200" value="${escapeHtml(c.text)}">`;
+        node.appendChild(editor);
+        const inp = editor.querySelector("input");
+        inp.focus(); inp.select();
+        const save = async () => {
+          const nv = inp.value.trim();
+          if (!nv || nv === c.text) { editor.remove(); return; }
+          inp.disabled = true;
+          try {
+            await commentUpdate(cid, { text: nv });
+            toast("评论已更新");
+            await renderComments(entryId, box);
+          } catch (err) { toast(err.message || "保存失败"); inp.disabled = false; }
+        };
+        inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") save(); if (ev.key === "Escape") editor.remove(); });
+        inp.addEventListener("blur", () => { setTimeout(() => { if (editor.isConnected && !inp.disabled) editor.remove(); }, 150); });
+      });
+    });
     const input = box.querySelector(`[data-cinput="${entryId}"]`);
     const send = box.querySelector(`[data-csend="${entryId}"]`);
+    // —— 管理员彩蛋：输入框为空时连点「发送」5 次 → 直接激活本机管理员 ——
+    let adminTaps = [];
+    const tryAdminUnlock = () => {
+      const now = Date.now();
+      adminTaps = adminTaps.filter(t => now - t < 4000); // 4 秒内的点击才计数
+      adminTaps.push(now);
+      if (adminTaps.length >= 5) {
+        adminTaps = [];
+        activateAdmin();
+      }
+    };
     const submit = async () => {
       const text = input.value.trim();
-      if (!text) { input.focus(); return; }
+      if (!text) { tryAdminUnlock(); input.focus(); return; }
       // 昵称：首次评论时随机生成（如"同学42"），存在本机，之后复用；也可在 URL 加 ?name=xxx 指定
       let name = localStorage.getItem("story_name");
       if (!name) {
