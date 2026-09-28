@@ -720,9 +720,10 @@
     }
     renderTimeline(id, entries);
     currentEntries = entries;
-    // 人物详情页背景：有头像的人物用其头像做整页背景（仅袁景成需求，通用化：photo_count>0 即生效）
+    // 人物详情页背景：仅对白名单人物启用（当前只有袁景成），背景图用其头像
+    const PERSON_BG_IDS = new Set(["pmukhp5q4npxyqq"]); // 袁景成
     const detailEl = document.getElementById("detailView");
-    if (p.photo_count > 0) {
+    if (PERSON_BG_IDS.has(id) && p.photo_count > 0) {
       // 首图 id 需查 Storage 根目录（头像），异步设置
       listPhotos(id).then(ids => {
         if (ids.length) {
