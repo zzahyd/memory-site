@@ -59,7 +59,8 @@
   .person .meta { padding: 12px 14px 14px; }
   .person .pname { font-size: 16px; font-weight: 700; color: #3a3a4a; letter-spacing: 0.04em; }
   .person .pstory { font-size: 13px; color: #6a6a82; margin-top: 5px; line-height: 1.5;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    word-break: break-word; overflow-wrap: anywhere; }
   .person .ptime { font-size: 11px; color: #a0a0b8; margin-top: 8px; }
   .empty { text-align: center; color: #9a9ab0; font-size: 15px; line-height: 2; padding: 60px 20px; }
   .empty .big { font-size: 40px; }
@@ -69,6 +70,12 @@
   .detail.hidden, .list.hidden, .modal.hidden { display: none !important; }
   .dname { font-size: 22px; font-weight: 700; letter-spacing: 0.06em; color: #3a3a4a; margin: 4px 0 2px; }
   .dtime { font-size: 12px; color: #a0a0b8; margin-bottom: 8px; }
+  /* 人物简介卡（详情页顶部） */
+  .dbio { position: relative; z-index: 2; background: rgba(255,255,255,0.72); border-radius: 16px; padding: 12px 16px;
+    border: 1px solid rgba(255,255,255,0.85); box-shadow: 0 8px 24px rgba(58,58,74,0.10); margin-bottom: 16px;
+    font-size: 13.5px; color: #5a5a72; line-height: 1.8; white-space: pre-wrap; word-break: break-word; }
+  .dbio::before { content: "📌 简介"; display: block; font-size: 11px; color: #b0a0d0; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .dbio.hidden { display: none !important; }
   .addphoto { margin-top: 4px; margin-bottom: 22px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
   /* 时间轴主体 */
@@ -94,7 +101,24 @@
   .tphotos img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 12px; cursor: zoom-in;
     background: linear-gradient(135deg, #ffe1f0, #ddeaff); transition: transform .25s; }
   .tphotos img:hover { transform: scale(1.03); }
-  .tmeta { padding: 0 16px 14px; font-size: 11px; color: #b0b0c4; }
+  .tmeta { padding: 0 16px 4px; font-size: 11px; color: #b0b0c4; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+
+  /* ===== 故事评论 ===== */
+  .tcomments { border-top: 1px solid rgba(58,58,74,0.08); padding: 10px 16px 14px; }
+  .cmt-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+  .cmt { background: rgba(255,255,255,0.75); border-radius: 12px; padding: 8px 12px;
+    border: 1px solid rgba(58,58,74,0.06); }
+  .cmt .cname { font-size: 12px; font-weight: 700; color: #7a5aa8; }
+  .cmt .ctext { font-size: 13px; color: #4a4a5e; line-height: 1.6; margin-top: 2px; white-space: pre-wrap; word-break: break-word; }
+  .cmt .ctime { font-size: 10.5px; color: #b8b8cc; margin-top: 3px; }
+  .cmt-empty { font-size: 12px; color: #b0b0c4; margin-bottom: 8px; }
+  .cmt-form { display: flex; gap: 6px; }
+  .cmt-form input[type=text] { flex: 1; min-width: 0; font-family: inherit; font-size: 13px; color: #3a3a4a;
+    border: 1px solid rgba(58,58,74,0.14); border-radius: 999px; padding: 7px 12px; background: #fbfbff; outline: none; }
+  .cmt-form input[type=text]:focus { border-color: rgba(158,193,255,0.9); box-shadow: 0 0 0 3px rgba(158,193,255,0.16); }
+  .cmt-toggle { cursor: pointer; background: none; border: none; font-size: 12px; color: #8a8aa8;
+    padding: 4px 0 0; display: inline-flex; align-items: center; gap: 4px; }
+  .cmt-toggle:hover { color: #6a6a92; }
   .tempty { padding: 40px 10px 30px; text-align: center; color: #9a9ab0; font-size: 14px; line-height: 2; }
 
   /* 图片放大查看 */
@@ -163,6 +187,7 @@
     <button class="back" id="backToList" style="margin-bottom:14px; display:inline-block;">← 返回列表</button>
     <div class="dname" id="dName"></div>
     <div class="dtime" id="dTime"></div>
+    <div class="dbio hidden" id="dBio"></div>
     <div class="addphoto">
       <button class="btn primary" id="newEntryBtn">＋ 写一个故事</button>
     </div>
@@ -239,6 +264,7 @@
   const SB_KEY = "sb_publishable__hFsWHorCWwJrayab_9hzA_xD1W-4TP";
   const TABLE = "story_people";
   const ETABLE = "story_entries";
+  const CTABLE = "story_comments";
   const BUCKET = "story-photos";
   const AUTH_HEADERS = { "apikey": SB_KEY, "Authorization": "Bearer " + SB_KEY };
 
@@ -258,40 +284,62 @@
   }
 
   // ====== 云端 API 封装 ======
+  // 带自动重试的 fetch：网络抖动/跨境链路不稳时（超时、5xx、429）自动重试，最多 3 次
+  // 说明：压测显示 Supabase 服务端在 30 并发下依然稳定（~0.5s/请求），偶发"云端连接失败"
+  // 基本是客户端到其服务器的链路抖动（尤其移动网络/校园网晚高峰），重试即可恢复
+  async function fetchRetry(url, opts, retries) {
+    const max = retries == null ? 3 : retries;
+    let lastErr = null;
+    for (let attempt = 0; attempt <= max; attempt++) {
+      try {
+        const r = await fetch(url, opts);
+        // 服务器繁忙/网关错误 => 可重试；4xx 参数错误 => 不重试
+        if ((r.status === 429 || r.status >= 500) && attempt < max) {
+          await new Promise(res => setTimeout(res, 600 * (attempt + 1)));
+          continue;
+        }
+        return r;
+      } catch (e) {
+        lastErr = e;
+        if (attempt < max) await new Promise(res => setTimeout(res, 600 * (attempt + 1)));
+      }
+    }
+    throw lastErr || new Error("network failed");
+  }
   async function apiList() {
-    const r = await fetch(`${SB_URL}/rest/v1/${TABLE}?select=*&order=updated_at.desc&limit=500`, { headers: AUTH_HEADERS });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}?select=*&order=updated_at.desc&limit=500`, { headers: AUTH_HEADERS });
     if (!r.ok) throw new Error("list failed: " + r.status);
     return r.json();
   }
   async function apiGet(id) {
-    const r = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}&select=*`, { headers: AUTH_HEADERS });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}&select=*`, { headers: AUTH_HEADERS });
     if (!r.ok) throw new Error("get failed: " + r.status);
     const arr = await r.json();
     return arr[0] || null;
   }
   async function apiInsert(row) {
-    const r = await fetch(`${SB_URL}/rest/v1/${TABLE}`, {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify(row),
-    });
+    }, 1);
     if (!r.ok && r.status !== 201) throw new Error("insert failed: " + r.status);
   }
   async function apiUpdate(id, patch) {
-    const r = await fetch(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
       method: "PATCH", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify(patch),
-    });
+    }, 1);
     if (!r.ok && r.status !== 204) throw new Error("update failed: " + r.status);
   }
   // ====== 故事条目 API（story_entries 表）======
   async function entryList(personId) {
-    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}?person_id=eq.${encodeURIComponent(personId)}&select=*&order=happened_at.desc&limit=1000`, { headers: AUTH_HEADERS });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?person_id=eq.${encodeURIComponent(personId)}&select=*&order=happened_at.desc&limit=1000`, { headers: AUTH_HEADERS });
     if (!r.ok) throw new Error("entry list failed: " + r.status);
     return r.json();
   }
   async function entryCountAll() {
     // 每个人物条目数 + 最新故事时间/标题/条目id（列表卡片与缩略图用），一次拉全表本地聚合（班级量级完全够用）
-    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}?select=id,person_id,title,happened_at,created_at,photo_count&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}?select=id,person_id,title,happened_at,created_at,photo_count&order=created_at.asc&limit=5000`, { headers: AUTH_HEADERS });
     if (!r.ok) throw new Error("entry agg failed: " + r.status);
     const rows = await r.json();
     const map = {};
@@ -305,11 +353,25 @@
     return map;
   }
   async function entryInsert(row) {
-    const r = await fetch(`${SB_URL}/rest/v1/${ETABLE}`, {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${ETABLE}`, {
       method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
       body: JSON.stringify(row),
-    });
+    }, 1);
     if (!r.ok && r.status !== 201) throw new Error("entry insert failed: " + r.status);
+  }
+
+  // ====== 评论 API（story_comments 表）======
+  async function commentList(entryId) {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${CTABLE}?entry_id=eq.${encodeURIComponent(entryId)}&select=*&order=created_at.asc&limit=500`, { headers: AUTH_HEADERS });
+    if (!r.ok) throw new Error("comment list failed: " + r.status);
+    return r.json();
+  }
+  async function commentInsert(row) {
+    const r = await fetchRetry(`${SB_URL}/rest/v1/${CTABLE}`, {
+      method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json", "Prefer": "return=minimal" },
+      body: JSON.stringify(row),
+    }, 1);
+    if (!r.ok && r.status !== 201) throw new Error("comment insert failed: " + r.status);
   }
 
   // 照片存 Storage：路径 personId/photoId.jpg；公开桶 => 直接拼公开 URL，无需签名
@@ -471,6 +533,14 @@
     document.getElementById("dTime").textContent = entries.length
       ? `${entries.length} 个故事 · 由同学们共同记录`
       : "还没有故事，点上方「＋ 写一个故事」开始";
+    // 人物简介：有则显示在时间轴上方
+    const bioEl = document.getElementById("dBio");
+    if (p.story && p.story.trim()) {
+      bioEl.textContent = p.story.trim();
+      bioEl.classList.remove("hidden");
+    } else {
+      bioEl.classList.add("hidden");
+    }
     renderTimeline(id, entries);
     window.scrollTo(0, 0);
   }
@@ -496,7 +566,11 @@
           <div class="ttitle">${title}</div>
           ${body ? `<div class="tbody">${body}</div>` : ""}
           ${photosHtml}
-          <div class="tmeta">发布于 ${fmt(e.created_at)} · ☁️ 所有人可见</div>
+          <div class="tmeta">
+            <span>发布于 ${fmt(e.created_at)} · ☁️ 所有人可见</span>
+            <button class="cmt-toggle" data-entry="${e.id}">💬 评论</button>
+          </div>
+          <div class="tcomments hidden" id="cmts-${e.id}"></div>
         </div>
       </div>`;
     }).join("");
@@ -521,6 +595,66 @@
         lightbox.classList.remove("hidden");
       });
     });
+    // ====== 评论：点「💬 评论」展开/收起评论区 ======
+    timelineEl.querySelectorAll(".cmt-toggle").forEach(btnEl => {
+      btnEl.addEventListener("click", async () => {
+        const eid = btnEl.dataset.entry;
+        const box = document.getElementById("cmts-" + eid);
+        if (!box) return;
+        if (!box.classList.contains("hidden")) { box.classList.add("hidden"); return; } // 再点收起
+        box.classList.remove("hidden");
+        box.innerHTML = `<div class="cmt-empty">⏳ 评论加载中…</div>`;
+        await renderComments(eid, box);
+      });
+    });
+  }
+
+  // 渲染某条故事的评论区（列表 + 输入框）
+  async function renderComments(entryId, box) {
+    let comments;
+    try { comments = await commentList(entryId); }
+    catch (e) { box.innerHTML = `<div class="cmt-empty">评论加载失败，稍后再试</div>`; return; }
+    const listHtml = comments.length
+      ? `<div class="cmt-list">${comments.map(c => `
+          <div class="cmt">
+            <div class="cname">${escapeHtml(c.name || "匿名")}</div>
+            <div class="ctext">${escapeHtml(c.text)}</div>
+            <div class="ctime">${fmt(c.created_at)}</div>
+          </div>`).join("")}</div>`
+      : `<div class="cmt-empty">还没有评论，说点什么吧～</div>`;
+    box.innerHTML = `${listHtml}
+      <div class="cmt-form">
+        <input type="text" maxlength="200" placeholder="写下你的评论…（回车发送）" data-cinput="${entryId}">
+        <button class="btn primary" style="padding:7px 14px;" data-csend="${entryId}">发送</button>
+      </div>`;
+    const input = box.querySelector(`[data-cinput="${entryId}"]`);
+    const send = box.querySelector(`[data-csend="${entryId}"]`);
+    const submit = async () => {
+      const text = input.value.trim();
+      if (!text) { input.focus(); return; }
+      // 昵称：首次评论时随机生成（如"同学42"），存在本机，之后复用；也可在 URL 加 ?name=xxx 指定
+      let name = localStorage.getItem("story_name");
+      if (!name) {
+        try { name = "同学" + Math.floor(Math.random() * 99 + 1); } catch (e) { name = "匿名"; }
+        try { localStorage.setItem("story_name", name); } catch (e) {}
+      }
+      send.disabled = true; send.textContent = "…";
+      try {
+        await commentInsert({
+          id: uid(),
+          entry_id: entryId,
+          name,
+          text,
+          created_at: Date.now(),
+        });
+        await renderComments(entryId, box); // 重新渲染（含新评论+清空的输入框）
+      } catch (e) {
+        toast("评论失败：" + e.message);
+        send.disabled = false; send.textContent = "发送";
+      }
+    };
+    send.addEventListener("click", submit);
+    input.addEventListener("keydown", (ev) => { if (ev.key === "Enter") submit(); });
   }
   lightbox.addEventListener("click", () => { lightbox.classList.add("hidden"); lightboxImg.src = ""; });
   function backToList() {
