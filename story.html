@@ -734,7 +734,7 @@
     const badge = document.getElementById("adminBadge");
     if (badge) {
       if (isAdmin()) { badge.textContent = "👑 管理员模式"; badge.classList.remove("hidden"); }
-      else { badge.classList.add("hidden"); }
+      else { badge.textContent = ""; badge.classList.add("hidden"); }
     }
     document.getElementById("dTime").textContent = entries.length
       ? `${entries.length} 个故事 · 由同学们共同记录`
