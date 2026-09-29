@@ -68,6 +68,7 @@
   /* ===== 详情（时间轴） ===== */
   .detail { position: relative; z-index: 2; max-width: 720px; margin: 0 auto; padding: 8px 18px 60px; }
   .detail.hidden, .list.hidden, .modal.hidden { display: none !important; }
+  .hidden { display: none !important; } /* 通用兜底：任何元素挂 .hidden 都必须真隐藏（adminBadge/delPersonBtn 等此前漏网） */
   /* 人物故事页个人背景：仅白名单人物生效。页面结构与布局与其他人完全一致，
      只是把整页背景替换为该人物的头像图（浅色蒙版保证文字可读），其余样式零改动 */
   /* 图片 1600x1217（横向），要"不裁切+尽可能大面积"：
