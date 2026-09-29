@@ -697,24 +697,24 @@
   (function () {
     var frame = document.getElementById('mem-frame');
     var btn = document.getElementById('enterBtn');
-    var open = false;
-    window.closeMemory = function () { open = false; frame.classList.remove('show'); frame.removeAttribute('src'); };
+    /* 状态以真实 DOM 为准（浮层 class + iframe src），不再用 open 布尔——
+       手机边缘滑动返回会触发浏览器历史回退，使布尔状态与实际 UI 脱节，
+       曾导致「滑动返回后再点访问记忆无反应」。 */
+    window.closeMemory = function () { frame.classList.remove('show'); frame.removeAttribute('src'); };
     btn.addEventListener('click', function () {
-      if (open) return; open = true;
-      frame.src = 'memory.html';
+      var already = frame.classList.contains('show') && frame.getAttribute('src') === 'memory.html';
+      if (!already) frame.src = 'memory.html';
       frame.classList.add('show');
     });
     // 时光手记在 iframe 内打开（嵌套在 memory.html 里），与背景音乐无缝延续
     window.openStory = function () {
-      open = true;
-      if (frame.getAttribute('src') === 'story.html') return; // 已在手记页，避免重复加载
+      if (frame.getAttribute('src') === 'story.html' && frame.classList.contains('show')) return;
       frame.src = 'story.html';
       frame.classList.add('show');
     };
     // 从手记返回组别（星座）页：切换 iframe 内容而非关闭浮层，音乐不断
     window.openMemory = function () {
-      open = true;
-      if (frame.getAttribute('src') === 'memory.html') return;
+      if (frame.getAttribute('src') === 'memory.html' && frame.classList.contains('show')) return;
       frame.src = 'memory.html';
       frame.classList.add('show');
     };
