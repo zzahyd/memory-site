@@ -381,6 +381,24 @@
     // 刷新当前视图，让编辑/删除按钮立即出现
     if (currentId) openDetail(currentId); else renderList();
   }
+  // 启动时校验本机管理员令牌是否仍被服务端认可（令牌轮换后旧身份自动失效）
+  async function validateAdminToken() {
+    if (!ADMIN_TOKEN) return;
+    try {
+      const r = await fetchRetry(`${SB_URL}/rest/v1/rpc/is_admin`, {
+        method: "POST", headers: { ...AUTH_HEADERS, "Content-Type": "application/json" },
+        body: JSON.stringify({ candidate: ADMIN_TOKEN }),
+      }, 1);
+      if (!r.ok) return; // 校验失败不降级（网络差时宁可信其有）
+      const ok = await r.json();
+      if (!ok) {
+        try { localStorage.removeItem("story_admin_token"); } catch (e) {}
+        ADMIN_TOKEN = null;
+        toast("管理员身份已过期");
+        if (currentId) openDetail(currentId); else renderList();
+      }
+    } catch (e) { /* 网络异常不降级 */ }
+  }
   const fmt = (ts) => {
     const d = new Date(Number(ts) || Date.now());
     const p = (n) => String(n).padStart(2, "0");
@@ -1188,6 +1206,7 @@
 
   // 首屏渲染
   renderList();
+  validateAdminToken(); // 异步校验本机管理员令牌，过期自动降级为普通访客
 })();
 </script>
 </body>
