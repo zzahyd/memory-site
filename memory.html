@@ -21,7 +21,7 @@
   /* 性能无损化：blur(100px) 巨型全屏滤镜在手机 GPU 上开销极大（每帧全屏高斯模糊）。
      光斑本身是径向渐变，把渐变的透明过渡拉满即可得到几乎相同的柔和光晕，完全省掉 blur 滤镜；
      动画全部保留，视觉一致。 */
-  .bg { position: fixed; inset: 0; overflow: hidden; z-index: 0; }
+  .bg { position: fixed; inset: 0; overflow: hidden; z-index: 0; filter: blur(100px) saturate(145%); }
   .blob { position: absolute; border-radius: 50%; opacity: 0.62; will-change: transform, filter; }
   .blob.b1 { width: 135vmax; height: 135vmax; left: -35vmax; top: -35vmax; background: radial-gradient(circle at 40% 40%, #ffb0d0, rgba(255,176,208,0.55) 42%, rgba(255,176,208,0.22) 68%, transparent 96%); animation: float1 20s ease-in-out infinite, hue 20s linear infinite; }
   .blob.b2 { width: 128vmax; height: 128vmax; right: -38vmax; top: -30vmax; background: radial-gradient(circle at 60% 40%, #aecbff, rgba(174,203,255,0.55) 42%, rgba(174,203,255,0.22) 68%, transparent 96%); animation: float2 20s ease-in-out infinite, hue 20s linear infinite; }
